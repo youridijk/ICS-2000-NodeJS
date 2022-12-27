@@ -1,6 +1,6 @@
 {
   "name": "ics-2000",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A library to control your KAKU devices through the ICS-2000 and read P1 data from ICS-2000",
   "license": "Apache-2.0",
   "engines": {
@@ -12,9 +12,12 @@
     "doc": "docs"
   },
   "scripts": {
+    "start": "node .",
+    "start:server": "node ./dist/start-server.js",
     "dev": "nodemon",
     "build": "rimraf ./dist && tsc",
-    "lint": "eslint src/**.ts --max-warnings=0"
+    "lint": "eslint src/**.ts --max-warnings=0",
+    "prepublishOnly": "npm run lint && npm run build"
   },
   "devDependencies": {
     "@types/node": "^18.11.18",
@@ -26,7 +29,8 @@
     "typescript": "^4.4.4"
   },
   "dependencies": {
-    "axios": "^1.2.1"
+    "axios": "^1.2.1",
+    "express": "^4.18.2"
   },
   "keywords": [
     "kaku",
