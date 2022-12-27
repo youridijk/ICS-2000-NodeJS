@@ -7,6 +7,7 @@
     "node": ">=14.18.1"
   },
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "directories": {
     "doc": "docs"
   },
