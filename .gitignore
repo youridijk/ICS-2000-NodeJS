@@ -121,3 +121,4 @@ web_modules/
 .idea
 *.chls
 test-data/
+src/test.js

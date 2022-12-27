@@ -141,3 +141,4 @@ docs/
 *.md
 *.chls
 test-date/
+src/test.js
