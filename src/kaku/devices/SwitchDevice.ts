@@ -12,7 +12,7 @@ export default class SwitchDevice extends Device {
   ) {
     super(hub, deviceData, deviceConfig);
 
-    if(deviceConfig.onOffFunction == null) {
+    if (deviceConfig.onOffFunction == null) {
       throw new Error(`On/off function not defined for '${this.deviceData.name}'`);
     }
   }
@@ -23,7 +23,7 @@ export default class SwitchDevice extends Device {
    * @param sendLocal Boolean which indicates whether you want to send the command local using UDP directly to ICS-2000
    * or through the KAKU cloud. Defaults to true.
    */
-  public turnOnOff(on: boolean, sendLocal: boolean = true): Promise<void> {
+  public turnOnOff(on: boolean, sendLocal = true): Promise<void> {
     return this.getHub().turnDeviceOnOff(this.entityId, on, this.deviceConfig.onOffFunction!, this.isGroup, sendLocal);
   }
 
@@ -32,7 +32,7 @@ export default class SwitchDevice extends Device {
    * @param sendLocal Boolean which indicates whether you want to send the command local using UDP directly to ICS-2000
    * or through the KAKU cloud
    */
-  public turnOn(sendLocal: boolean = true): Promise<void> {
+  public turnOn(sendLocal = true): Promise<void> {
     return this.getHub().turnDeviceOnOff(this.entityId, true, this.deviceConfig.onOffFunction!, this.isGroup, sendLocal);
   }
 
@@ -41,7 +41,7 @@ export default class SwitchDevice extends Device {
    * @param sendLocal Boolean which indicates whether you want to send the command local using UDP directly to ICS-2000
    * or through the KAKU cloud. Defaults to true.
    */
-  public turOff(sendLocal: boolean = true): Promise<void> {
+  public turOff(sendLocal = true): Promise<void> {
     return this.getHub().turnDeviceOnOff(this.entityId, false, this.deviceConfig.onOffFunction!, this.isGroup, sendLocal);
   }
 

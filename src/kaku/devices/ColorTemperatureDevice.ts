@@ -11,12 +11,12 @@ export default class ColorTemperatureDevice extends DimDevice {
   ) {
     super(hub, deviceData, deviceConfig);
 
-    if(deviceConfig.colorTemperatureFunction == null) {
+    if (deviceConfig.colorTemperatureFunction == null) {
       throw new Error(`Color temperature function not defined for '${this.deviceData.name}'`);
     }
   }
 
-  public changeColorTemperature(colorTemperature: number, sendLocal: boolean = true): Promise<void> {
+  public changeColorTemperature(colorTemperature: number, sendLocal = true): Promise<void> {
     return this.getHub()
       .changeColorTemperature(this.entityId, this.deviceConfig.colorTemperatureFunction!, colorTemperature, this.isGroup, sendLocal);
   }
