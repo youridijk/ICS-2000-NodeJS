@@ -1,11 +1,9 @@
-import Hub from '../../kaku/Hub';
-import {NextFunction, Request, RequestHandler, Response} from 'express';
+import {NextFunction, Request, Response} from 'express';
 
-export default (hub: Hub): RequestHandler => {
-  return (req: Request, res: Response, next: NextFunction) => {
+export default (req: Request, res: Response, next: NextFunction) => {
     const entityId = Number(req.params.entityId);
 
-    const device = hub.devices.find(d => d.entityId === entityId);
+    const device = req.hub.devices.find(d => d.entityId === entityId);
 
     if (!device) {
       return res
@@ -15,5 +13,4 @@ export default (hub: Hub): RequestHandler => {
 
     req.device = device;
     next();
-  };
 };

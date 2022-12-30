@@ -1,25 +1,57 @@
 import {Hub, RESTServer} from './index';
-
+import {parseArgs} from 'node:util';
+import e from 'express';
 
 async function main() {
-    if (process.argv.length < 4) {
-        return console.log('No e-mail and password provided');
-    }
+  const {
+    values: {email, password, port},
+  } = parseArgs({
+    options: {
+      email: {
+        type: 'string',
+        short: 'e',
+      },
+      password: {
+        type: 'string',
+        short: 'p',
+      },
+      port: {
+        type: 'string',
+        short: 'p',
+      },
+    },
+  });
 
-    const email = process.argv[2];
-    const password = process.argv[3];
+  let portNumber = port ? Number(port) : null;
 
-    const hub = new Hub(email, password);
-    const server = new RESTServer(hub);
+  if (email && !password) {
+    return console.log('Password is required when email is provided');
+  }
 
-    try {
-        const port = process.argv.length >= 5 ? Number(process.argv[4]) : 8080;
-        await server.setup();
-        await server.listen(port);
-        console.log("Server started on port " + port);
-    } catch (error) {
-        console.log(`${error}`);
-    }
+  if (!email && password) {
+    return console.log('Email is required when password is provided');
+  }
+
+  if (portNumber && isNaN(portNumber)) {
+    return console.log('Port needs to a number, not ' + port)
+  }
+
+  let hub: Hub | undefined;
+
+  if (email && password) {
+    hub = new Hub(email, password);
+  }
+
+  const server = new RESTServer(hub);
+
+  try {
+    portNumber ??= 8080;
+    await server.setup();
+    await server.listen(portNumber);
+    console.log('Server started on port ' + portNumber);
+  } catch (error) {
+    console.log(`${error}`);
+  }
 }
 
 main().then()

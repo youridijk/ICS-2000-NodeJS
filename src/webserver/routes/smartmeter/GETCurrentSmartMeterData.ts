@@ -1,10 +1,8 @@
 import {Request, Response} from 'express';
-import Hub from '../../kaku/Hub';
 
-export default (hub: Hub) => {
-  return async (req: Request, res: Response) => {
+export default async (req: Request, res: Response) => {
     try {
-      const smartMeterData = await hub.getSmartMeterData();
+      const smartMeterData = await req.hub.getSmartMeterData();
       res
         .status(200)
         .send(smartMeterData);
@@ -13,5 +11,4 @@ export default (hub: Hub) => {
         .status(500)
         .send({error: `Error getting smart meter data: ${e}`});
     }
-  };
-};
+}
