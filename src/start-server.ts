@@ -1,9 +1,11 @@
 import {Hub, RESTServer} from './index';
 import {parseArgs} from 'node:util';
+import loadEnv from './loadEnv';
 
 async function main() {
-  const {
-    values: {email, password, port},
+  let {
+    // eslint-disable-next-line prefer-const
+    values: {email, password, port, useEnv},
   } = parseArgs({
     options: {
       email: {
@@ -18,8 +20,18 @@ async function main() {
         type: 'string',
         short: 'p',
       },
+      useEnv: {
+        type: 'boolean',
+      },
     },
   });
+
+  if (useEnv) {
+    loadEnv();
+    email = process.env.EMAIL;
+    password = process.env.PASSWORD;
+    port = process.env.PORT;
+  }
 
   let portNumber = port ? Number(port) : null;
 
@@ -37,8 +49,10 @@ async function main() {
 
   let hub: Hub | undefined;
 
-  if (email && password) {
-    hub = new Hub(email, password);
+  const singleUserMode = email && password;
+
+  if (singleUserMode) {
+    hub = new Hub(email!, password!);
   }
 
   const server = new RESTServer(hub);
@@ -48,6 +62,7 @@ async function main() {
     await server.setup();
     await server.listen(portNumber);
     console.log('Server started on port ' + portNumber);
+    console.log(`Current mode: ${singleUserMode ? 'single user' : 'multi user'} `);
   } catch (error) {
     console.log(`${error}`);
   }

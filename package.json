@@ -14,7 +14,8 @@
   "scripts": {
     "start": "node .",
     "start:server": "node ./dist/start-server.js",
-    "dev": "nodemon",
+    "dev": "nodemon -w 'src/**/*' --ext '*.ts' --exec 'tsc && npm start'",
+    "dev:server": "nodemon -w 'src/**/*' --ext '*.ts' --exec 'tsc && npm run start:server -- --useEnv'",
     "build": "rimraf ./dist && tsc",
     "lint": "eslint src/**.ts --max-warnings=0",
     "prepublishOnly": "npm run lint && npm run build"

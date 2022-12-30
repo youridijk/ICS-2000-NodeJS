@@ -33,12 +33,15 @@ export default class Hub {
    * Creates a Hub for easy communication with the ics-2000
    * @param email Your e-mail of your KAKU account
    * @param password Your password of your KAKU account
-   * @param hubMac The MAC-Address of your ICS-2000. Will be fetched when running login(), but if you don't need AES-key and provide MAC-address, login isn't necessary
-   * @param AESKey The AES-key used to encrypt and decrypt data send and received. Will be fetched when running login(), but if you don't need MAC-address and provide AES-key, login isn't necessary
+   * @param hubMac The MAC-Address of your ICS-2000. Will be fetched when running login(),
+   * but if you don't need AES-key and provide MAC-address, login isn't necessary
+   * @param AESKey The AES-key used to encrypt and decrypt data send and received. Will be fetched when running login(),
+   * but if you don't need MAC-address and provide AES-key, login isn't necessary
    * @param deviceBlacklist A list of entityID's you don't want to appear in HomeKit
    * @param localBackupAddress Optionally, you can pass the ip address of your ics-2000
    * in case it can't be automatically found in the network
-   * @param deviceConfigsOverrides An object used to pass custom device configs. This object will be merged with the existing configs, but these configs will override existing configs.
+   * @param deviceConfigsOverrides An object used to pass custom device configs.
+   * This object will be merged with the existing configs, but these configs will override existing configs.
    */
   constructor(
     private readonly email: string,
@@ -239,11 +242,11 @@ export default class Hub {
         return new ColorTemperatureDevice(this, device as DeviceData, deviceConfig);
       }
 
-      if(deviceConfig.dimFunction != null) {
+      if (deviceConfig.dimFunction != null) {
         return new DimDevice(this, device as DeviceData, deviceConfig);
       }
 
-      if(deviceConfig.onOffFunction != null) {
+      if (deviceConfig.onOffFunction != null) {
         return new SwitchDevice(this, device as DeviceData, deviceConfig);
       }
 
@@ -308,7 +311,7 @@ export default class Hub {
 
   public async sendCommand(command: Command, sendLocal: boolean): Promise<void> {
     if (sendLocal) {
-      return this.sendCommandToHub( command, 2012);
+      return this.sendCommandToHub(command, 2012);
     } else {
       return this.sendCommandToCloud(command);
     }
@@ -320,7 +323,7 @@ export default class Hub {
     }
 
     if (Number.isInteger(port)) {
-      throw new Error('Port needs to be an integer')
+      throw new Error('Port needs to be an integer');
     }
 
     return command.sendTo(this.localAddress!, port);
@@ -331,7 +334,7 @@ export default class Hub {
   }
 
   public changeStatus(deviceId: number, deviceFunction: number, value: number, isGroup: boolean, sendLocal: boolean) {
-    const command = this.createCommand(deviceId, deviceFunction, value, isGroup)
+    const command = this.createCommand(deviceId, deviceFunction, value, isGroup);
     return this.sendCommand(command, sendLocal);
   }
 
@@ -572,11 +575,11 @@ export default class Hub {
   }
 
   public async getP1Data(
-      startDate: Date,
-      endDate: Date,
-      precision: Precision,
-      differential = true,
-      interpolate = true,
+    startDate: Date,
+    endDate: Date,
+    precision: Precision,
+    differential = true,
+    interpolate = true,
   ): Promise<number[][]> {
     const params = new URLSearchParams({
       'action': 'aggregated_reports',
@@ -598,16 +601,25 @@ export default class Hub {
       }
     });
 
-    const responseDate = response.data;
+    if (response.status !== 200) {
+      throw new Error('Non 200 status returned: ' + response.status);
+    }
 
-    if (!Array.isArray(responseDate)) {
+    const responseData = response.data;
+
+    if (!Array.isArray(responseData)) {
+      console.log(responseData);
+      if (responseData.error) {
+        throw new Error(responseData.error);
+      }
+
       throw new Error('Response date is not an array');
     }
 
     return response.data;
   }
 
-  public static convertToSmartMeterData(array: number[], date: Date, useEpoch = false): SmartMeterData{
+  public static convertToSmartMeterData(array: number[], date: Date, useEpoch = false): SmartMeterData {
     return {
       date: (useEpoch ? date.getTime() : date),
       powerConsumedLowTariff: array[0],
@@ -620,14 +632,21 @@ export default class Hub {
   }
 
   public async getSmartMeterDataByDay(startDate: Date, endDate: Date) {
+    startDate.setHours(23);
+    startDate.setSeconds(0);
+    startDate.setMilliseconds(0);
+
+    endDate.setHours(23);
+    endDate.setSeconds(0);
+    endDate.setMilliseconds(0);
+
     const rawData = await this.getP1Data(startDate, endDate, 'day');
 
     const returnData: SmartMeterData[] = [];
 
     for (const dayDataArray of rawData) {
       startDate.setDate(startDate.getDate() + 1);
-
-      returnData.push(Hub.convertToSmartMeterData(dayDataArray, startDate, true));
+      returnData.push(Hub.convertToSmartMeterData(dayDataArray, new Date(startDate.getTime())));
     }
 
     return returnData;
@@ -636,23 +655,18 @@ export default class Hub {
   public async getSmartMeterDataByDayWithNumberOfDays(endDate: Date, numberOfDays: number) {
     const startDate = new Date(endDate.getTime());
     startDate.setDate(startDate.getDate() - numberOfDays);
-    startDate.setHours(23);
-    endDate.setHours(23);
     return this.getSmartMeterDataByDay(startDate, endDate);
   }
 
-  public async getSmartMeterDataByWeek(weekEndDate: Date) {
+  public async getSmartMeterDataByDayPastWeek(weekEndDate: Date) {
     return this.getSmartMeterDataByDayWithNumberOfDays(weekEndDate, 7);
   }
 
-  public async getSmartMeterDataByDayMonth(monthEndDate: Date) {
+  public async getSmartMeterDataByDayPastMonth(monthEndDate: Date) {
     const startDate = new Date(monthEndDate.getTime());
     startDate.setMonth(startDate.getMonth() - 1);
-    startDate.setHours(23);
-    monthEndDate.setHours(23);
     return this.getSmartMeterDataByDay(startDate, monthEndDate);
   }
-
 }
 
 module.exports = Hub;

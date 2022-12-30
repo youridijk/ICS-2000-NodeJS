@@ -11,6 +11,9 @@ import PUTOnOff from './routes/control/PUTOnOff';
 import StaticHub from './middlewares/StaticHub';
 import DynamicHub from './middlewares/DynamicHub';
 import GETCurrentSmartMeterData from './routes/smartmeter/GETCurrentSmartmeterData';
+import GETSmartMeterDataByDay from './routes/smartmeter/GETSmartMeterDataByDay';
+import GETSmartMeterDataByDayPastMonth from './routes/smartmeter/GETSmartMeterDataByDayPastMonth';
+import GETSmartMeterDataByDayPastWeek from './routes/smartmeter/GETSmartMeterDataByDayPastWeek';
 
 export default class RESTServer {
   protected readonly app: Express = express();
@@ -33,6 +36,9 @@ export default class RESTServer {
     this.router.use(express.json());
 
     this.router.get('/smartmeter/current', GETCurrentSmartMeterData);
+    this.router.get('/smartmeter/day', GETSmartMeterDataByDay);
+    this.router.get('/smartmeter/day/week', GETSmartMeterDataByDayPastWeek);
+    this.router.get('/smartmeter/day/month', GETSmartMeterDataByDayPastMonth);
 
     this.router.get('/devices', GETDevices);
     this.router.get('/devices/:entityId', CheckNumber, CheckGetDevice, GETDevice);
