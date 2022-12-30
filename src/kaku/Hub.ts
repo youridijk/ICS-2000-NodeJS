@@ -33,14 +33,18 @@ export default class Hub {
    * Creates a Hub for easy communication with the ics-2000
    * @param email Your e-mail of your KAKU account
    * @param password Your password of your KAKU account
+   * @param hubMac The MAC-Address of your ICS-2000. Will be fetched when running login(), but if you don't need AES-key and provide MAC-address, login isn't necessary
+   * @param AESKey The AES-key used to encrypt and decrypt data send and received. Will be fetched when running login(), but if you don't need MAC-address and provide AES-key, login isn't necessary
    * @param deviceBlacklist A list of entityID's you don't want to appear in HomeKit
    * @param localBackupAddress Optionally, you can pass the ip address of your ics-2000
    * in case it can't be automatically found in the network
-   * @param deviceConfigsOverrides
+   * @param deviceConfigsOverrides An object used to pass custom device configs. This object will be merged with the existing configs, but these configs will override existing configs.
    */
   constructor(
     private readonly email: string,
     private readonly password: string,
+    hubMac?: string,
+    AESKey?: string,
     private readonly deviceBlacklist: number[] = [],
     private readonly localBackupAddress?: string,
     deviceConfigsOverrides: Record<number, DeviceConfig> = {},
@@ -48,13 +52,12 @@ export default class Hub {
     this.localAddress = localBackupAddress;
     this.deviceConfigs = {...deviceConfigs, ...deviceConfigsOverrides};
 
+    this.hubMac = hubMac;
+    this.aesKey = AESKey;
+
     if (!email || !password) {
       throw new Error('Email and/ or password missing');
     }
-  }
-
-  public setHubMAC(mac: string) {
-    this.hubMac = mac;
   }
 
   /**
@@ -228,6 +231,7 @@ export default class Hub {
       const deviceConfig = this.deviceConfigs[deviceType];
 
       if (!deviceConfig) {
+        // Should be Device but changing it would cause issues with homebridge plugin
         return new SwitchDevice(this, device as DeviceData, {modelName: 'Unknown device type', onOffFunction: 0});
       }
 
@@ -302,6 +306,35 @@ export default class Hub {
     return new Command(this.hubMac!, deviceId, deviceFunction, value, this.aesKey!, isGroup, deviceFunctions);
   }
 
+  public async sendCommand(command: Command, sendLocal: boolean): Promise<void> {
+    if (sendLocal) {
+      return this.sendCommandToHub( command, 2012);
+    } else {
+      return this.sendCommandToCloud(command);
+    }
+  }
+
+  public async sendCommandToHub(command: Command, port: number): Promise<void> {
+    if (!this.localAddress) {
+      throw new Error('Local address is undefined');
+    }
+
+    if (Number.isInteger(port)) {
+      throw new Error('Port needs to be an integer')
+    }
+
+    return command.sendTo(this.localAddress!, port);
+  }
+
+  public async sendCommandToCloud(command: Command): Promise<void> {
+    return command.sendToCloud(this.email, this.password);
+  }
+
+  public changeStatus(deviceId: number, deviceFunction: number, value: number, isGroup: boolean, sendLocal: boolean) {
+    const command = this.createCommand(deviceId, deviceFunction, value, isGroup)
+    return this.sendCommand(command, sendLocal);
+  }
+
   /**
    * Creates a command to turn a device on or off and sends it to the ics-2000 ip address stored in this class
    * @param deviceId The id of the device you want to turn on or off
@@ -312,23 +345,7 @@ export default class Hub {
    */
   public turnDeviceOnOff(deviceId: number, on: boolean, onFunction: number, isGroup: boolean, sendLocal: boolean) {
     const command = this.createCommand(deviceId, onFunction, on ? 1 : 0, isGroup);
-    if (sendLocal) {
-      return this.sendCommandToHub(command);
-    } else {
-      return this.sendCommandToCloud(command);
-    }
-  }
-
-  public async sendCommandToHub(command: Command): Promise<void> {
-    if (!this.localAddress) {
-      throw new Error('Local address is undefined');
-    }
-
-    return command.sendTo(this.localAddress!, 2012);
-  }
-
-  public async sendCommandToCloud(command: Command): Promise<void> {
-    return command.sendToCloud(this.email, this.password);
+    return this.sendCommand(command, sendLocal);
   }
 
   /**
@@ -340,41 +357,23 @@ export default class Hub {
    * @param sendLocal A boolean which indicates whether you want to send the command through KAKU cloud or local using UDP
    */
   public dimDevice(deviceId: number, dimFunction: number, dimLevel: number, isGroup: boolean, sendLocal: boolean) {
-    if (!this.localAddress) {
-      throw new Error('Local address is undefined');
-    }
-
     if (dimLevel < 0 || dimLevel > 255) {
       throw new Error(`Dim level ${dimLevel} is negative or greater than 255`);
     }
 
     const command = this.createCommand(deviceId, dimFunction, dimLevel, isGroup);
-
-    if (sendLocal) {
-      return command.sendTo(this.localAddress!, 2012);
-    } else {
-      return this.sendCommandToCloud(command);
-    }
+    return this.sendCommand(command, sendLocal);
   }
 
   public changeColorTemperature(
     deviceId: number, colorTempFunction: number, colorTemperature: number, isGroup: boolean, sendLocal: boolean,
   ) {
-    if (!this.localAddress) {
-      throw new Error('Local address is undefined');
-    }
-
     if (colorTemperature < 0 || colorTemperature > 600) {
       throw new Error(`Color temperature ${colorTemperature} is negative or greater than 600`);
     }
 
     const command = this.createCommand(deviceId, colorTempFunction, colorTemperature, isGroup);
-
-    if (sendLocal) {
-      return command.sendTo(this.localAddress!, 2012);
-    } else {
-      return this.sendCommandToCloud(command);
-    }
+    return this.sendCommand(command, sendLocal);
   }
 
   public async getAllDeviceStatuses() {
@@ -431,144 +430,6 @@ export default class Hub {
 
     return this.deviceStatuses.get(deviceId)!;
     // return this.getDeviceStatusFromServer(deviceId);
-  }
-
-  public async getP1EntityID(): Promise<number> {
-    const rawDevicesData = await this.getRawDevicesData(true, false);
-    const p1Entity = rawDevicesData.find(d => d.data?.module?.name === 'P1 Module');
-    return p1Entity?.id;
-  }
-
-  /**
-   * Get the current data from the P1 module (aka smart meter)
-   */
-  public async getSmartMeterData(): Promise<SmartMeterDataCurrent> {
-    if (this.p1EntityId == null) {
-      this.p1EntityId = await this.getP1EntityID();
-    }
-
-    // If still null, no P1 smartmeter found
-    if (this.p1EntityId == null) {
-      throw Error('No entityId found for the P1 smartmeter!');
-    }
-
-    const params = new URLSearchParams({
-      'action': 'check',
-      'email': this.email,
-      'password_hash': this.password,
-      'mac': this.hubMac!,
-      'entity_id': this.p1EntityId.toString(),
-    });
-
-    const response = await axios.post('/entity.php', params.toString());
-    const p1EncryptedData = response.data[3];
-    const p1Data = Cryptographer.decryptBase64(p1EncryptedData, this.aesKey!);
-    const p1JsonData = JSON.parse(p1Data);
-    const functions: number[] = p1JsonData.module.functions;
-
-    return {
-      powerConsumedLowTariff: functions[0],
-      powerConsumed: functions[1],
-      powerProducedLowTariff: functions[2],
-      powerProduced: functions[3],
-      currentConsumption: functions[4],
-      currentProduction: functions[5],
-      gas: functions[6],
-      rawDataArray: functions,
-    };
-  }
-
-  protected formatDate(date: Date): string {
-    date.setMilliseconds(0);
-    date.setSeconds(0);
-    date.setMinutes(0);
-    const dateString = date.toLocaleDateString('en-CA');
-    const timeString = date.toLocaleTimeString('nl-NL');
-    return dateString + ' ' + timeString;
-  }
-
-  public async getP1Data(
-    startDate: Date,
-    endDate: Date,
-    precision: Precision,
-    differential = true,
-    interpolate = true,
-  ): Promise<number[][]> {
-    const params = new URLSearchParams({
-      'action': 'aggregated_reports',
-      'email': this.email,
-      'password_hash': this.password,
-      'mac': this.hubMac!,
-      'differential': String(differential),
-      'interpolate': String(interpolate),
-      'start_date': this.formatDate(startDate),
-      'end_date': this.formatDate(endDate),
-      precision,
-    });
-
-    const response = await axios.post('/p1.php', params.toString()).catch(error => {
-      if (error.response.status === 400 && error.response.data.error) {
-        throw new Error(error.response.data.error);
-      } else {
-        throw new Error(error.response.data);
-      }
-    });
-
-    const responseDate = response.data;
-
-    if (!Array.isArray(responseDate)) {
-      throw new Error('Response date is not an array');
-    }
-
-    return response.data;
-  }
-
-  public static convertToSmartMeterData(array: number[], date: Date, noTime = false): SmartMeterData{
-    return {
-      date: (noTime ? date.toLocaleDateString('en-US') : date),
-      // date,
-      time: date.getTime(),
-      powerConsumedLowTariff: array[0],
-      powerConsumed: array[1],
-      powerProducedLowTariff: array[2],
-      powerProduced: array[3],
-      gas: array[4],
-      water: array[5],
-    };
-  }
-
-  public async getSmartMeterDataByDay(startDate: Date, endDate: Date) {
-    const rawData = await this.getP1Data(startDate, endDate, 'day');
-
-    const returnData: SmartMeterData[] = [];
-
-    for (const dayDataArray of rawData) {
-      startDate.setDate(startDate.getDate() + 1);
-
-      returnData.push(Hub.convertToSmartMeterData(dayDataArray, startDate, true));
-    }
-
-    return returnData;
-  }
-
-  public async getSmartMeterDataByDayWithNumberOfDays(endDate: Date, numberOfDays: number) {
-    const startDate = new Date(endDate.getTime());
-    startDate.setDate(startDate.getDate() - numberOfDays);
-    startDate.setHours(23);
-    endDate.setHours(23);
-    return this.getSmartMeterDataByDay(startDate, endDate);
-  }
-
-  public async getSmartMeterDataByWeek(weekEndDate: Date) {
-    return this.getSmartMeterDataByDayWithNumberOfDays(weekEndDate, 7);
-  }
-
-  public async getSmartMeterDataByDayMonth(monthEndDate: Date) {
-    const startDate = new Date(monthEndDate.getTime());
-    startDate.setMonth(startDate.getMonth() - 1);
-    startDate.setHours(23);
-    monthEndDate.setHours(23);
-    return this.getSmartMeterDataByDay(startDate, monthEndDate);
   }
 
   /**
@@ -655,6 +516,143 @@ export default class Hub {
     const devices = await this.getRawDeviceStatuses(decryptData, decryptStatus);
     fs.writeFileSync('statuses.json', JSON.stringify(devices, null, 2));
   }
+
+  public async getP1EntityID(): Promise<number> {
+    const rawDevicesData = await this.getRawDevicesData(true, false);
+    const p1Entity = rawDevicesData.find(d => d.data?.module?.name === 'P1 Module');
+    return p1Entity?.id;
+  }
+
+  /**
+   * Get the current data from the P1 module (aka smart meter)
+   */
+  public async getSmartMeterData(): Promise<SmartMeterDataCurrent> {
+    if (this.p1EntityId == null) {
+      this.p1EntityId = await this.getP1EntityID();
+    }
+
+    // If still null, no P1 smartmeter found
+    if (this.p1EntityId == null) {
+      throw Error('No entityId found for the P1 smartmeter!');
+    }
+
+    const params = new URLSearchParams({
+      'action': 'check',
+      'email': this.email,
+      'password_hash': this.password,
+      'mac': this.hubMac!,
+      'entity_id': this.p1EntityId.toString(),
+    });
+
+    const response = await axios.post('/entity.php', params.toString());
+    const p1EncryptedData = response.data[3];
+    const p1Data = Cryptographer.decryptBase64(p1EncryptedData, this.aesKey!);
+    const p1JsonData = JSON.parse(p1Data);
+    const functions: number[] = p1JsonData.module.functions;
+
+    return {
+      powerConsumedLowTariff: functions[0],
+      powerConsumed: functions[1],
+      powerProducedLowTariff: functions[2],
+      powerProduced: functions[3],
+      currentConsumption: functions[4],
+      currentProduction: functions[5],
+      gas: functions[6],
+      rawDataArray: functions,
+    };
+  }
+
+  protected formatDate(date: Date): string {
+    date.setMilliseconds(0);
+    date.setSeconds(0);
+    date.setMinutes(0);
+    const dateString = date.toLocaleDateString('en-CA');
+    const timeString = date.toLocaleTimeString('nl-NL');
+    return dateString + ' ' + timeString;
+  }
+
+  public async getP1Data(
+      startDate: Date,
+      endDate: Date,
+      precision: Precision,
+      differential = true,
+      interpolate = true,
+  ): Promise<number[][]> {
+    const params = new URLSearchParams({
+      'action': 'aggregated_reports',
+      'email': this.email,
+      'password_hash': this.password,
+      'mac': this.hubMac!,
+      'differential': String(differential),
+      'interpolate': String(interpolate),
+      'start_date': this.formatDate(startDate),
+      'end_date': this.formatDate(endDate),
+      precision,
+    });
+
+    const response = await axios.post('/p1.php', params.toString()).catch(error => {
+      if (error.response.status === 400 && error.response.data.error) {
+        throw new Error(error.response.data.error);
+      } else {
+        throw new Error(error.response.data);
+      }
+    });
+
+    const responseDate = response.data;
+
+    if (!Array.isArray(responseDate)) {
+      throw new Error('Response date is not an array');
+    }
+
+    return response.data;
+  }
+
+  public static convertToSmartMeterData(array: number[], date: Date, useEpoch = false): SmartMeterData{
+    return {
+      date: (useEpoch ? date.getTime() : date),
+      powerConsumedLowTariff: array[0],
+      powerConsumed: array[1],
+      powerProducedLowTariff: array[2],
+      powerProduced: array[3],
+      gas: array[4],
+      water: array[5],
+    };
+  }
+
+  public async getSmartMeterDataByDay(startDate: Date, endDate: Date) {
+    const rawData = await this.getP1Data(startDate, endDate, 'day');
+
+    const returnData: SmartMeterData[] = [];
+
+    for (const dayDataArray of rawData) {
+      startDate.setDate(startDate.getDate() + 1);
+
+      returnData.push(Hub.convertToSmartMeterData(dayDataArray, startDate, true));
+    }
+
+    return returnData;
+  }
+
+  public async getSmartMeterDataByDayWithNumberOfDays(endDate: Date, numberOfDays: number) {
+    const startDate = new Date(endDate.getTime());
+    startDate.setDate(startDate.getDate() - numberOfDays);
+    startDate.setHours(23);
+    endDate.setHours(23);
+    return this.getSmartMeterDataByDay(startDate, endDate);
+  }
+
+  public async getSmartMeterDataByWeek(weekEndDate: Date) {
+    return this.getSmartMeterDataByDayWithNumberOfDays(weekEndDate, 7);
+  }
+
+  public async getSmartMeterDataByDayMonth(monthEndDate: Date) {
+    const startDate = new Date(monthEndDate.getTime());
+    startDate.setMonth(startDate.getMonth() - 1);
+    startDate.setHours(23);
+    monthEndDate.setHours(23);
+    return this.getSmartMeterDataByDay(startDate, monthEndDate);
+  }
+
 }
 
 module.exports = Hub;
