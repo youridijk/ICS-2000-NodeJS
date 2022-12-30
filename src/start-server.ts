@@ -1,6 +1,5 @@
 import {Hub, RESTServer} from './index';
 import {parseArgs} from 'node:util';
-import e from 'express';
 
 async function main() {
   const {
@@ -33,7 +32,7 @@ async function main() {
   }
 
   if (portNumber && isNaN(portNumber)) {
-    return console.log('Port needs to a number, not ' + port)
+    return console.log('Port needs to a number, not ' + port);
   }
 
   let hub: Hub | undefined;
@@ -54,4 +53,4 @@ async function main() {
   }
 }
 
-main().then()
+main().then();
