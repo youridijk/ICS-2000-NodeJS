@@ -1,4 +1,5 @@
 import {Request, Response} from 'express';
+import SwitchDevice from '../../../kaku/devices/SwitchDevice';
 
 export default async (req: Request, res: Response) => {
   const turnOn = req.path.endsWith('/on');
@@ -8,7 +9,13 @@ export default async (req: Request, res: Response) => {
   const {device} = req;
 
   try {
-    await device?.turnOnOff(turnOn, sendLocal);
+    if (device instanceof SwitchDevice) {
+      await device?.turnOnOff(turnOn, sendLocal);
+    } else {
+      return res
+        .status(400)
+        .send({error: 'Device can\'t be turned on or off'});
+    }
   } catch (e) {
     res
       .status(500)

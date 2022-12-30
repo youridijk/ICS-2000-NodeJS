@@ -1,7 +1,7 @@
 import Hub from '../../kaku/Hub';
 import {NextFunction, Request, RequestHandler, Response} from 'express';
 
-export default (hub: Hub): RequestHandler => {
+export default function (hub: Hub): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     const entityId = Number(req.params.entityId);
 

@@ -34,7 +34,7 @@ export default class Device {
   }
 
   /**
-   * Get the current status of a device in the form of a integer array
+   * Get the current status of a device in the form of an integer array
    */
   public getStatus(): Promise<number[]> {
     return this.#hub.getDeviceStatus(this.entityId);
@@ -46,6 +46,10 @@ export default class Device {
    */
   public getHub(): Hub {
     return this.#hub;
+  }
+
+  public changeStatus(deviceFunction: number, value: number, sendLocal: boolean): Promise<void> {
+    return this.#hub.changeStatus(this.entityId, deviceFunction, value, this.isGroup, sendLocal);
   }
 }
 

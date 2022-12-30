@@ -11,7 +11,7 @@ export default class DimDevice extends SwitchDevice {
   ) {
     super(hub, deviceData, deviceConfig);
 
-    if(deviceConfig.dimFunction == null) {
+    if (deviceConfig.dimFunction == null) {
       throw new Error(`Dim function not defined for '${this.deviceData.name}'`);
     }
   }
@@ -22,7 +22,7 @@ export default class DimDevice extends SwitchDevice {
    * @param sendLocal Boolean which indicates whether you want to send the command local using UDP directly to ICS-2000
    * or through the KAKU cloud
    */
-  public dim(dimLevel: number, sendLocal: boolean = true): Promise<void> | null {
+  public dim(dimLevel: number, sendLocal = true): Promise<void> | null {
     return this.getHub().dimDevice(this.entityId, this.deviceConfig.dimFunction!, dimLevel, this.isGroup, sendLocal);
   }
 
