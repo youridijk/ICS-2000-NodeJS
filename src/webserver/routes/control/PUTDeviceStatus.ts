@@ -7,8 +7,7 @@ export default async (req: Request, res: Response) => {
   const value = Number(req.body.value);
 
   const {local} = req.query;
-  // eslint-disable-next-line eqeqeq
-  const sendLocal = local == null ? true : local === '1' || local === 'true';
+  const sendLocal = local == null ? req.sendCommandsLocal : local === '1' || local === 'true';
 
   if (!Number.isInteger(deviceFunction) || !Number.isInteger(value)) {
     return res

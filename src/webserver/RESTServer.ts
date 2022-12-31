@@ -10,16 +10,18 @@ import PUTDeviceStatus from './routes/control/PUTDeviceStatus';
 import PUTOnOff from './routes/control/PUTOnOff';
 import StaticHub from './middlewares/StaticHub';
 import DynamicHub from './middlewares/DynamicHub';
-import GETCurrentSmartMeterData from './routes/smartmeter/GETCurrentSmartmeterData';
+import GETCurrentSmartMeterData from './routes/smartmeter/GETCurrentSmartMeterData';
 import GETSmartMeterDataByDay from './routes/smartmeter/GETSmartMeterDataByDay';
 import GETSmartMeterDataByDayPastMonth from './routes/smartmeter/GETSmartMeterDataByDayPastMonth';
 import GETSmartMeterDataByDayPastWeek from './routes/smartmeter/GETSmartMeterDataByDayPastWeek';
+import Login from './routes/Login';
 
 export default class RESTServer {
   protected readonly app: Express = express();
   public readonly router: Router = Router();
 
   constructor(
+    public readonly sendCommandsLocal: boolean,
     public readonly hub?: Hub,
   ) {
     this.setupRoutes();
@@ -27,13 +29,15 @@ export default class RESTServer {
 
   private setupRoutes() {
     if (this.hub) {
-      this.router.use(StaticHub(this.hub));
+      this.router.use(StaticHub(this.sendCommandsLocal, this.hub));
       this.router.post('/setup', Setup(this));
     } else {
       this.router.use(DynamicHub);
     }
 
     this.router.use(express.json());
+
+    this.router.get('/login', Login);
 
     this.router.get('/smartmeter/current', GETCurrentSmartMeterData);
     this.router.get('/smartmeter/day', GETSmartMeterDataByDay);
@@ -56,7 +60,9 @@ export default class RESTServer {
 
     await this.hub.login();
     // console.log('Logged in');
-    await this.hub.discoverHubLocal();
+    if (this.sendCommandsLocal) {
+      await this.hub.discoverHubLocal();
+    }
     // console.log('Discovered hub');
     await this.hub.pullDevices();
     // console.log('Pulled devices');

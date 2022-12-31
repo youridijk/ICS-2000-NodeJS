@@ -6,6 +6,7 @@ declare global {
         interface Request {
             hub: Hub;
             device: Device;
+            sendCommandsLocal: boolean;
         }
     }
 }

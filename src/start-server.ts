@@ -5,7 +5,7 @@ import loadEnv from './loadEnv';
 async function main() {
   let {
     // eslint-disable-next-line prefer-const
-    values: {email, password, port, useEnv},
+    values: {email, password, port, useEnv, sendLocal, backUpIP},
   } = parseArgs({
     options: {
       email: {
@@ -18,10 +18,16 @@ async function main() {
       },
       port: {
         type: 'string',
-        short: 'p',
       },
       useEnv: {
         type: 'boolean',
+      },
+      sendLocal: {
+        type: 'boolean',
+      },
+      backUpIP: {
+        type: 'string',
+        short: 'i',
       },
     },
   });
@@ -31,6 +37,8 @@ async function main() {
     email = process.env.EMAIL;
     password = process.env.PASSWORD;
     port = process.env.PORT;
+    sendLocal = process.env.SENDLOCAL === 'true';
+    backUpIP = process.env.BACKUPIP;
   }
 
   let portNumber = port ? Number(port) : null;
@@ -46,16 +54,15 @@ async function main() {
   if (portNumber && isNaN(portNumber)) {
     return console.log('Port needs to a number, not ' + port);
   }
+  const singleUserMode = email != null && password != null;
+  sendLocal ??= singleUserMode;
 
   let hub: Hub | undefined;
-
-  const singleUserMode = email && password;
-
   if (singleUserMode) {
-    hub = new Hub(email!, password!);
+    hub = new Hub(email!, password!, undefined, undefined, [], backUpIP);
   }
 
-  const server = new RESTServer(hub);
+  const server = new RESTServer(sendLocal, hub);
 
   try {
     portNumber ??= 8080;

@@ -89,3 +89,21 @@ npm run start:server -- 'e-mail' 'password' '8888'
 
 Note that the server only supports controlling devices connected to the account you provided the credentials for when
 you started the server.
+
+### Docker
+A Docker-image is provided to run the REST server in a Docker container.
+To run it, clone this repo and build the image with te following command: 
+```shell
+ docker build -t ics-2000 .
+```
+
+Start the container in multi-user mode:
+```shell
+docker run -p 8080:8080 --name ics-2000 ics-2000 
+```
+
+Start the container in single-user mode:
+Note: Backup IP is required because the hub can't be found from the Docker container
+```shell
+docker run -p 8080:8080 -e EMAIL='your@email.com' -e PASSWORD='password' -e BACKUPIP='192.168.1.12' --name ics-2000 ics-2000 
+```
