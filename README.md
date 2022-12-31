@@ -89,3 +89,7 @@ npm run start:server -- 'e-mail' 'password' '8888'
 
 Note that the server only supports controlling devices connected to the account you provided the credentials for when
 you started the server.
+
+
+### Docker
+A Docker-image is provided to run the REST server in a Docker container  

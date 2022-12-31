@@ -3,8 +3,7 @@ import {Request, Response} from 'express';
 
 export default async (req: Request, res: Response) => {
   const {local} = req.query;
-  // eslint-disable-next-line eqeqeq
-  const sendLocal = local == null ? true : local === '1' || local === 'true';
+  const sendLocal = local == null ? req.sendCommandsLocal : local === '1' || local === 'true';
   const {device} = req;
   const dimLevel = Number(req.params.dimLevel);
 

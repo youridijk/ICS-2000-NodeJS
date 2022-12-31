@@ -667,6 +667,14 @@ export default class Hub {
     startDate.setMonth(startDate.getMonth() - 1);
     return this.getSmartMeterDataByDay(startDate, monthEndDate);
   }
+
+  public getAESKey() {
+    return this.aesKey;
+  }
+
+  public getHubMac() {
+    return this.hubMac;
+  }
 }
 
 module.exports = Hub;
