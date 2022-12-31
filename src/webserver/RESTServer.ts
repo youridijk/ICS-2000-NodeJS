@@ -10,7 +10,7 @@ import PUTDeviceStatus from './routes/control/PUTDeviceStatus';
 import PUTOnOff from './routes/control/PUTOnOff';
 import StaticHub from './middlewares/StaticHub';
 import DynamicHub from './middlewares/DynamicHub';
-import GETCurrentSmartMeterData from './routes/smartmeter/GETCurrentSmartmeterData';
+import GETCurrentSmartMeterData from './routes/smartmeter/GETCurrentSmartMeterData';
 import GETSmartMeterDataByDay from './routes/smartmeter/GETSmartMeterDataByDay';
 import GETSmartMeterDataByDayPastMonth from './routes/smartmeter/GETSmartMeterDataByDayPastMonth';
 import GETSmartMeterDataByDayPastWeek from './routes/smartmeter/GETSmartMeterDataByDayPastWeek';
