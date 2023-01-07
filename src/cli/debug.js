@@ -59,7 +59,7 @@ async function main() {
       console.log(`Pulling Devices...`);
       const hub = new Hub(argv.u, argv.p);
       await hub.login();
-      console.log(JSON.stringify(await hub.pullDevices()));
+      console.log(JSON.stringify(await hub.pullDevices(), null, 2));
     }
   if (argv.gs) {
     const entity_id = argv.gs;
