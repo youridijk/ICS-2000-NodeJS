@@ -51,18 +51,16 @@ const argv = yargs
   .alias('help', 'h').argv;
 
 async function main() {
-
+  if (!(argv.u && argv.p)) {
+    console.log('Please enter your credentials using the username [-u] and password [-p] parameters when using this option.')
+    return
+  }
   if (argv.pd) {
-    if (!(argv.u && argv.p)) {
-      console.log('Please enter your credentials using the username [-u] and password [-p] parameters when using this option.')
-      return
-    } else {
       console.log(`Pulling Devices...`);
       const hub = new Hub(argv.u, argv.p);
       await hub.login();
       console.log(JSON.stringify(await hub.pullDevices()));
     }
-  }
   if (argv.gs) {
     const entity_id = argv.gs;
     console.log(`Getting status for Entity ID ${entity_id}...`);
