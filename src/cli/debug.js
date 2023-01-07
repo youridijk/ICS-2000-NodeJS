@@ -56,9 +56,9 @@ if (argv.pd) {
     }
     else {
         console.log(`Pulling Devices...`);
-        const hub = new Hub(argv.u, argv.p)
+        const hub = new Hub(argv.u, argv.p);
         await hub.login();
-        await console.log(JSON.stringify(hub.pullDevices()));
+        console.log(JSON.stringify(await hub.pullDevices()));
     }
 }
 if (argv.gs) {
