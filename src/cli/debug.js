@@ -66,7 +66,7 @@ async function main() {
     console.log(`Getting status for Entity ID ${entity_id}...`);
     const hub = new Hub(argv.u, argv.p);
     await hub.login();
-    console.log(await hub.getDeviceStatus(entity_id));
+    console.log(JSON.stringify(await hub.getDeviceStatus(entity_id), null, 2));
   }
   if (argv.cs) {
     const entity_id = argv.cs;
