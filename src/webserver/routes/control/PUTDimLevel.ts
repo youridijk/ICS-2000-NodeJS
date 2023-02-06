@@ -1,4 +1,4 @@
-import DimDevice from '../../../kaku/devices/DimDevice';
+import DimDevice from '../../../kaku/entities/DimDevice';
 import {Request, Response} from 'express';
 
 export default async (req: Request, res: Response) => {

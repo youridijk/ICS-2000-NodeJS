@@ -3,6 +3,7 @@ import Cryptographer from './Cryptographer';
 import dgram from 'dgram';
 import {URLSearchParams} from 'url';
 import axios from 'axios';
+import EntityType from './model/EntityType';
 
 /**
  * This class represents a command sent to the ICS-2000
@@ -18,7 +19,7 @@ export default class Command {
    * @param deviceFunction The function you want to call for the specified device
    * @param value The value for the specified function
    * @param aesKey The AES-key what you want to encrypt the message with, this key is stored on your KAKU account
-   * @param isGroup A boolean which indicates whether the device is a group of other devices or not
+   * @param entityType The type of the entity you want to control
    * @param deviceFunctions The list of the functions / status list (list of integers which represent the current state),
    * only needed if device is a group
    */
@@ -28,12 +29,12 @@ export default class Command {
     public readonly deviceFunction: number,
     public readonly value: number,
     public readonly aesKey: string,
-    public readonly isGroup: boolean,
+    public readonly entityType: EntityType,
     public readonly deviceFunctions: number[] = [],
   ) {
     const dataObject = {};
 
-    dataObject[isGroup ? 'group' : 'module'] = {
+    dataObject[entityType] = {
       id: deviceId,
       function: deviceFunction,
       value: value,
@@ -43,7 +44,7 @@ export default class Command {
     // + with this extra data, all the members of the group are updated as well
     // It's possible to just send a command like you would for a regular device, but the status will be wrong
     // (you turned a device on but homekit says it's off)
-    if (isGroup) {
+    if (entityType === 'group') {
       dataObject['group']['update_group_members'] = true;
       deviceFunctions[deviceFunction] = value;
       dataObject['group']['functions'] = deviceFunctions;
@@ -76,6 +77,7 @@ export default class Command {
   public sendTo(host: string, port: number, sendTimeout = 10_000) {
     return new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
+        console.log('timeout');
         reject('Message timed out');
       }, sendTimeout);
 
@@ -83,6 +85,7 @@ export default class Command {
       this.client.on('message', () => {
         clearTimeout(timeout);
         resolve();
+        this.client.close();
       });
 
       this.client.bind();

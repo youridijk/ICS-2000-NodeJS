@@ -1,11 +1,11 @@
 import Hub from './kaku/Hub';
-import Device from './kaku/devices/Device';
+import Entity from './kaku/entities/Entity';
 
 declare global {
     namespace Express {
         interface Request {
             hub: Hub;
-            device: Device;
+            device: Entity;
             sendCommandsLocal: boolean;
         }
     }

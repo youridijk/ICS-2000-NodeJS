@@ -1,7 +1,7 @@
 import {Request, Response} from 'express';
-import DimDevice from '../../../kaku/devices/DimDevice';
-import SwitchDevice from '../../../kaku/devices/SwitchDevice';
-import ColorTemperatureDevice from '../../../kaku/devices/ColorTemperatureDevice';
+import DimDevice from '../../../kaku/entities/DimDevice';
+import SwitchDevice from '../../../kaku/entities/SwitchDevice';
+import ColorTemperatureDevice from '../../../kaku/entities/ColorTemperatureDevice';
 
 export default async (req: Request, res: Response) => {
   const {device} = req;
@@ -10,7 +10,7 @@ export default async (req: Request, res: Response) => {
 
   if (device instanceof SwitchDevice) {
     const isOn = await device.getOnStatus();
-    statusObject = {isOn}
+    statusObject = {isOn};
   }
 
   if (device instanceof DimDevice) {

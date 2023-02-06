@@ -1,7 +1,7 @@
-import Device from './Device';
 import Hub from '../Hub';
 import DeviceData from '../model/DeviceData';
 import DeviceConfig from '../model/DeviceConfig';
+import Device from './Device';
 
 export default class SwitchDevice extends Device {
 

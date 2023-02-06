@@ -3,16 +3,18 @@ import Cryptographer from './Cryptographer';
 import * as dgram from 'dgram';
 import Command from './Command';
 import * as fs from 'fs';
-import Device from './devices/Device';
-import DimDevice from './devices/DimDevice';
+import DimDevice from './entities/DimDevice';
 import DeviceData from './model/DeviceData';
 import axios from 'axios';
 import SmartMeterDataCurrent from './model/SmartMeterDataCurrent';
-import ColorTemperatureDevice from './devices/ColorTemperatureDevice';
+import ColorTemperatureDevice from './entities/ColorTemperatureDevice';
 import DeviceConfig from './model/DeviceConfig';
 import deviceConfigs from './DeviceConfigs';
-import SwitchDevice from './devices/SwitchDevice';
+import SwitchDevice from './entities/SwitchDevice';
 import SmartMeterData, {Precision} from './model/SmartMeterData';
+import EntityType from './model/EntityType';
+import Scene from './entities/Scene';
+import Device from './entities/Device';
 
 // Set base url for all axios requests
 axios.defaults.baseURL = 'https://trustsmartcloud2.com/ics2000_api';
@@ -187,19 +189,31 @@ export default class Hub {
     return statusList.map(d => this.formatDeviceData(d, decryptData, decryptStatus));
   }
 
+  public async getScenes(entitiesData?: object[]): Promise<Scene[]> {
+    if (!entitiesData) {
+      entitiesData = await this.getRawDevicesData(true, false);
+    }
+
+    const scenes = entitiesData!.filter(entity => 'scene' in entity['data']);
+
+    return scenes.map(s => new Scene(this, s as DeviceData, 'scene'));
+  }
+
 
   /**
    * Pulls the list of devices connected to your ics-2000 from the serer
    * Stores the list of devices in this class and returns it
    */
-  public async pullDevices() {
+  public async getDevices(entitiesData?: object[]) {
     // Status will later be decrypted, because fewer data needs to be decrypted
-    const devicesData: object[] = await this.getRawDevicesData(true, false);
+    if (!entitiesData) {
+      entitiesData = await this.getRawDevicesData(true, false);
+    }
 
     const hubCopy = Object.assign({}, this);
     hubCopy.devices = [];
 
-    const devices = devicesData.filter(device => {
+    const devices = entitiesData!.filter(device => {
       const deviceId = Number(device['id']);
       const data = device['data'];
 
@@ -259,7 +273,7 @@ export default class Hub {
   /**
    * Search in you local network for the ics-2000. The ics-2000 listens to a broadcast message, so that's the way we find it out
    * @param searchTimeout The amount of milliseconds you want to wait for an answer on the sent message, before the promise is rejected
-   * @param message
+   * @param message The message sent to the ics-2000 to discover it in HEX string format. Defaults to self discovered message
    */
   public async discoverHubLocal(searchTimeout = 10_000, message?: string) {
     return new Promise<{ address: string; isBackupAddress: boolean }>((resolve, reject) => {
@@ -297,16 +311,16 @@ export default class Hub {
    * @param deviceId The id of the device you want to run a function on
    * @param deviceFunction The function you want to run on the device
    * @param value The value for the function
-   * @param isGroup A boolean which indicates whether the device is a group of other devices or not
+   * @param entityType The entityType used for the command
    */
-  public createCommand(deviceId: number, deviceFunction: number, value: number, isGroup: boolean): Command {
+  public createCommand(deviceId: number, deviceFunction: number, value: number, entityType: EntityType): Command {
     let deviceFunctions: number[] = [];
 
-    if (isGroup) {
+    if (entityType === 'group') {
       deviceFunctions = this.deviceStatuses.get(deviceId)!;
     }
 
-    return new Command(this.hubMac!, deviceId, deviceFunction, value, this.aesKey!, isGroup, deviceFunctions);
+    return new Command(this.hubMac!, deviceId, deviceFunction, value, this.aesKey!, entityType, deviceFunctions);
   }
 
   public async sendCommand(command: Command, sendLocal: boolean): Promise<void> {
@@ -322,7 +336,7 @@ export default class Hub {
       throw new Error('Local address is undefined');
     }
 
-    if (Number.isInteger(port)) {
+    if (!Number.isInteger(port)) {
       throw new Error('Port needs to be an integer');
     }
 
@@ -334,7 +348,7 @@ export default class Hub {
   }
 
   public changeStatus(deviceId: number, deviceFunction: number, value: number, isGroup: boolean, sendLocal: boolean) {
-    const command = this.createCommand(deviceId, deviceFunction, value, isGroup);
+    const command = this.createCommand(deviceId, deviceFunction, value, isGroup ? 'group' : 'module');
     return this.sendCommand(command, sendLocal);
   }
 
@@ -347,7 +361,7 @@ export default class Hub {
    * @param sendLocal A boolean which indicates whether you want to send the command through KAKU cloud or local using UDP
    */
   public turnDeviceOnOff(deviceId: number, on: boolean, onFunction: number, isGroup: boolean, sendLocal: boolean) {
-    const command = this.createCommand(deviceId, onFunction, on ? 1 : 0, isGroup);
+    const command = this.createCommand(deviceId, onFunction, on ? 1 : 0, isGroup ? 'module' : 'group');
     return this.sendCommand(command, sendLocal);
   }
 
@@ -364,7 +378,7 @@ export default class Hub {
       throw new Error(`Dim level ${dimLevel} is negative or greater than 255`);
     }
 
-    const command = this.createCommand(deviceId, dimFunction, dimLevel, isGroup);
+    const command = this.createCommand(deviceId, dimFunction, dimLevel, isGroup ? 'module' : 'group');
     return this.sendCommand(command, sendLocal);
   }
 
@@ -375,8 +389,13 @@ export default class Hub {
       throw new Error(`Color temperature ${colorTemperature} is negative or greater than 600`);
     }
 
-    const command = this.createCommand(deviceId, colorTempFunction, colorTemperature, isGroup);
+    const command = this.createCommand(deviceId, colorTempFunction, colorTemperature, isGroup ? 'module' : 'group');
     return this.sendCommand(command, sendLocal);
+  }
+
+  public async runScene(entityId: number): Promise<void> {
+    const command = this.createCommand(entityId, 0, 1, 'scene');
+    return this.sendCommand(command, true);
   }
 
   public async getAllDeviceStatuses() {
@@ -513,7 +532,7 @@ export default class Hub {
     if (!this.aesKey || !this.hubMac) {
       // console.log('MAC or AES key is null, so logging in!');
       await this.login();
-      await this.pullDevices();
+      await this.getDevices();
     }
 
     const devices = await this.getRawDeviceStatuses(decryptData, decryptStatus);

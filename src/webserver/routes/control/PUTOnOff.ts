@@ -1,5 +1,5 @@
 import {Request, Response} from 'express';
-import SwitchDevice from '../../../kaku/devices/SwitchDevice';
+import SwitchDevice from '../../../kaku/entities/SwitchDevice';
 
 export default async (req: Request, res: Response) => {
   const turnOn = req.path.endsWith('/on');

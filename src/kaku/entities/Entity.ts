@@ -1,36 +1,34 @@
 import Hub from '../Hub';
 import DeviceData from '../model/DeviceData';
-import DeviceConfig from '../model/DeviceConfig';
+import EntityType from '../model/EntityType';
 
 /**
  * This class represents a device you can turn on or off
  */
-export default class Device {
+export default class Entity {
   public readonly entityId: number;
   public readonly name: string;
   public readonly isGroup: boolean;
   public readonly deviceType: number;
-  public readonly disabled: boolean;
   // The # marks it private in plain js
   readonly #hub: Hub;
 
   /**
-   * Creates a device that can only turn on or off
+   * Creates a default entity: module (device), group or scene
    * @param hub The Hub you use to control this device
    * @param deviceData The data pulled from the KAKU cloud about this device
-   * @param deviceConfig Data that contains the functions for on/off, dimming and color temp
+   * @param entityType The entityType of this entity
    */
   public constructor(
     hub: Hub,
     public readonly deviceData: DeviceData,
-    public readonly deviceConfig: DeviceConfig,
+    public readonly entityType: EntityType,
   ) {
     this.#hub = hub;
-    this.entityId = deviceData.data.module.id;
-    this.name = deviceData.name;
-    this.deviceType = deviceData.device;
-    this.isGroup = deviceData.isGroup;
-    this.disabled = deviceConfig.disabled ?? false;
+    this.entityId = deviceData.data[entityType].id;
+    this.name = deviceData.data[entityType].name;
+    this.deviceType = deviceData.data[entityType].device;
+    this.isGroup = entityType === 'group';
   }
 
   /**
@@ -53,4 +51,4 @@ export default class Device {
   }
 }
 
-module.exports = Device;
+module.exports = Entity;
