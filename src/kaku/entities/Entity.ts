@@ -25,9 +25,9 @@ export default class Entity {
     public readonly entityType: EntityType,
   ) {
     this.#hub = hub;
-    this.entityId = deviceData.data[entityType].id;
+    this.entityId = Number(deviceData.id);
     this.name = deviceData.data[entityType].name;
-    this.deviceType = deviceData.data[entityType].device;
+    this.deviceType = deviceData.data[entityType].device ?? entityType;
     this.isGroup = entityType === 'group';
   }
 

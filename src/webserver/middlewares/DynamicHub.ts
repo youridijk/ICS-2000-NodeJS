@@ -10,7 +10,16 @@ export default function (req: Request, res: Response, next: NextFunction) {
       .send({error: 'Email and password in the headers is required'});
   }
 
-  req.hub = new Hub(email!.toString(), password!.toString(), hubMac?.toString(), aesKey?.toString());
+  req.hub = new Hub(email!.toString(), password!.toString());
+
+  if (hubMac) {
+    req.hub.setHubMac(hubMac.toString());
+  }
+
+  if (aesKey) {
+    req.hub.setAesKey(aesKey.toString());
+  }
+
   req.sendCommandsLocal = false;
   next();
 }

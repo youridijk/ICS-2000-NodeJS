@@ -15,6 +15,7 @@ import SmartMeterData, {Precision} from './model/SmartMeterData';
 import EntityType from './model/EntityType';
 import Scene from './entities/Scene';
 import Device from './entities/Device';
+import Entity from './entities/Entity';
 
 // Set base url for all axios requests
 axios.defaults.baseURL = 'https://trustsmartcloud2.com/ics2000_api';
@@ -35,7 +36,7 @@ export default class Hub {
    * Creates a Hub for easy communication with the ics-2000
    * @param email Your e-mail of your KAKU account
    * @param password Your password of your KAKU account
-   * @param deviceBlacklist A list of entityID's you don't want to appear in HomeKit
+   * @param entityBlacklist A list of entityID's you don't want to appear in HomeKit
    * @param localBackupAddress Optionally, you can pass the ip address of your ics-2000
    * in case it can't be automatically found in the network
    * @param deviceConfigsOverrides An object used to pass custom device configs.
@@ -44,7 +45,7 @@ export default class Hub {
   constructor(
     private readonly email: string,
     private readonly password: string,
-    private readonly deviceBlacklist: number[] = [],
+    private readonly entityBlacklist: number[] = [],
     private readonly localBackupAddress?: string,
     deviceConfigsOverrides: Record<number, DeviceConfig> = {},
   ) {
@@ -181,11 +182,12 @@ export default class Hub {
   }
 
   public async getScenes(entitiesData?: object[]): Promise<Scene[]> {
+    // Status of scene is not imported so not decrypting it
     if (!entitiesData) {
       entitiesData = await this.getRawDevicesData(true, false);
     }
 
-    const scenes = entitiesData!.filter(entity => 'scene' in entity['data']);
+    const scenes = entitiesData!.filter(entity => 'scene' in entity['data'] && !this.entityBlacklist.includes(entity['id']));
 
     return scenes.map(s => new Scene(this, s as DeviceData, 'scene'));
   }
@@ -208,7 +210,7 @@ export default class Hub {
       const deviceId = Number(device['id']);
       const data = device['data'];
 
-      if (this.deviceBlacklist.includes(deviceId)) {
+      if (this.entityBlacklist.includes(deviceId)) {
         return false;
       }
 
@@ -259,6 +261,13 @@ export default class Hub {
     });
 
     return this.devices;
+  }
+
+  public async getDevicesAndScenes(): Promise<Entity[]> {
+    const entitiesData = await this.getRawDevicesData(true, false);
+    const scenes = await this.getScenes(entitiesData);
+    const devices = await this.getDevices(entitiesData);
+    return [...scenes, ...devices];
   }
 
   /**
