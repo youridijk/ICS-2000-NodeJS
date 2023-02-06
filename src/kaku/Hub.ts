@@ -35,10 +35,6 @@ export default class Hub {
    * Creates a Hub for easy communication with the ics-2000
    * @param email Your e-mail of your KAKU account
    * @param password Your password of your KAKU account
-   * @param hubMac The MAC-Address of your ICS-2000. Will be fetched when running login(),
-   * but if you don't need AES-key and provide MAC-address, login isn't necessary
-   * @param AESKey The AES-key used to encrypt and decrypt data send and received. Will be fetched when running login(),
-   * but if you don't need MAC-address and provide AES-key, login isn't necessary
    * @param deviceBlacklist A list of entityID's you don't want to appear in HomeKit
    * @param localBackupAddress Optionally, you can pass the ip address of your ics-2000
    * in case it can't be automatically found in the network
@@ -48,17 +44,12 @@ export default class Hub {
   constructor(
     private readonly email: string,
     private readonly password: string,
-    hubMac?: string,
-    AESKey?: string,
     private readonly deviceBlacklist: number[] = [],
     private readonly localBackupAddress?: string,
     deviceConfigsOverrides: Record<number, DeviceConfig> = {},
   ) {
     this.localAddress = localBackupAddress;
     this.deviceConfigs = {...deviceConfigs, ...deviceConfigsOverrides};
-
-    this.hubMac = hubMac;
-    this.aesKey = AESKey;
 
     if (!email || !password) {
       throw new Error('Email and/ or password missing');
@@ -693,6 +684,24 @@ export default class Hub {
 
   public getHubMac() {
     return this.hubMac;
+  }
+
+  /**
+   * Set the AES-key used for encryption and descryption
+   * @param aesKey The AES-key used to encrypt and decrypt data send and received. Will be fetched when running login(),
+   * but if you don't need MAC-address and provide AES-key, login isn't necessary
+   */
+  public setAesKey(aesKey: string) {
+    this.aesKey = aesKey;
+  }
+
+  /**
+   * Set hub mac address
+   * @param hubMac The MAC-Address of your ICS-2000. Will be fetched when running login(),
+   * but if you don't need AES-key and provide MAC-address, login isn't necessary
+   */
+  public setHubMac(hubMac: string) {
+    this.hubMac = hubMac;
   }
 }
 
