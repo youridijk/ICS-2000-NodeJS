@@ -1,6 +1,6 @@
 {
   "name": "ics-2000",
-  "version": "1.2.0-beta.1",
+  "version": "2.0.0",
   "description": "A library to control your KAKU devices through the ICS-2000 and read P1 data from ICS-2000",
   "license": "Apache-2.0",
   "engines": {
