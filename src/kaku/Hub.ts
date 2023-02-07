@@ -313,7 +313,7 @@ export default class Hub {
       throw new Error('Local address is undefined');
     }
 
-    if (Number.isInteger(port)) {
+    if (!Number.isInteger(port)) {
       throw new Error('Port needs to be an integer');
     }
 
