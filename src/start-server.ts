@@ -59,7 +59,7 @@ async function main() {
 
   let hub: Hub | undefined;
   if (singleUserMode) {
-    hub = new Hub(email!, password!, undefined, undefined, [], backUpIP);
+    hub = new Hub(email!, password!, [], backUpIP);
   }
 
   const server = new RESTServer(sendLocal, hub);
