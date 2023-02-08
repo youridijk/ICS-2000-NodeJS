@@ -12,7 +12,7 @@ import DeviceConfig from './model/DeviceConfig';
 import deviceConfigs from './DeviceConfigs';
 import SwitchDevice from './entities/SwitchDevice';
 import SmartMeterData, {Precision} from './model/SmartMeterData';
-import EntityType from './model/EntityType';
+import {EntityType, Entity_Type} from './model/EntityType';
 import Scene from './entities/Scene';
 import Device from './entities/Device';
 import Entity from './entities/Entity';
@@ -154,29 +154,12 @@ export default class Hub {
       'entity_id': idsString,
     });
 
-
     const response = await axios.post('/entity.php', params.toString());
-
-    // const devicesJSON = responseJson.filter(device => {
-    //   const deviceId = Number(device['id']);
-    //   const data = device['data'];
     const statusList: object[] = response.data;
 
     if (statusList.length === 0) {
-      throw new Error(`Unknown error while fetching device statuses, json: ${statusList}`);
+      throw new Error(`Unknown error while fetching device statuses, response json: ${statusList}`);
     }
-
-    // return statusList.map(device => {
-    //   if (decryptData) {
-    //     const decryptedData = Cryptographer.decryptBase64(device['data'], this.aesKey!);
-    //     device['data'] = JSON.parse(decryptedData);
-    //   }
-    //
-    //   if (decryptStatus && device['status'] != null) {
-    //     const decryptedStatus = Cryptographer.decryptBase64(device['status'], this.aesKey!);
-    //     device['status'] = JSON.parse(decryptedStatus);
-    //   }
-    // });
 
     return statusList.map(d => this.formatDeviceData(d, decryptData, decryptStatus));
   }
@@ -263,6 +246,9 @@ export default class Hub {
     return this.devices;
   }
 
+  /**
+   * Get a list of all devices and scenes
+   */
   public async getDevicesAndScenes(): Promise<Entity[]> {
     const entitiesData = await this.getRawDevicesData(true, false);
     const scenes = await this.getScenes(entitiesData);
@@ -323,6 +309,11 @@ export default class Hub {
     return new Command(this.hubMac!, deviceId, deviceFunction, value, this.aesKey!, entityType, deviceFunctions);
   }
 
+  /**
+   * Sends a command to the ICS-2000 directly or through the cloud
+   * @param command The command you want to send
+   * @param sendLocal Whether you want to send the command directly or through the cloud
+   */
   public async sendCommand(command: Command, sendLocal: boolean): Promise<void> {
     if (sendLocal) {
       return this.sendCommandToHub(command, 2012);
@@ -331,6 +322,11 @@ export default class Hub {
     }
   }
 
+  /**
+   * Send a command to the ICS-2000 through the cloud
+   * @param command The command you want to send
+   * @param port The port you want to send the command to. Default for ICS-2000 is 2012
+   */
   public async sendCommandToHub(command: Command, port: number): Promise<void> {
     if (!this.localAddress) {
       throw new Error('Local address is undefined');
@@ -343,12 +339,16 @@ export default class Hub {
     return command.sendTo(this.localAddress!, port);
   }
 
+  /**
+   * Send a command to the ICS-2000 through the cloud
+   * @param command The command you want to send
+   */
   public async sendCommandToCloud(command: Command): Promise<void> {
     return command.sendToCloud(this.email, this.password);
   }
 
   public changeStatus(deviceId: number, deviceFunction: number, value: number, isGroup: boolean, sendLocal: boolean) {
-    const command = this.createCommand(deviceId, deviceFunction, value, isGroup ? 'group' : 'module');
+    const command = this.createCommand(deviceId, deviceFunction, value, isGroup ? Entity_Type.Group : Entity_Type.Module);
     return this.sendCommand(command, sendLocal);
   }
 
@@ -361,7 +361,7 @@ export default class Hub {
    * @param sendLocal A boolean which indicates whether you want to send the command through KAKU cloud or local using UDP
    */
   public turnDeviceOnOff(deviceId: number, on: boolean, onFunction: number, isGroup: boolean, sendLocal: boolean) {
-    const command = this.createCommand(deviceId, onFunction, on ? 1 : 0, isGroup ? 'module' : 'group');
+    const command = this.createCommand(deviceId, onFunction, on ? 1 : 0, isGroup ? Entity_Type.Group : Entity_Type.Module);
     return this.sendCommand(command, sendLocal);
   }
 
@@ -378,10 +378,18 @@ export default class Hub {
       throw new Error(`Dim level ${dimLevel} is negative or greater than 255`);
     }
 
-    const command = this.createCommand(deviceId, dimFunction, dimLevel, isGroup ? 'module' : 'group');
+    const command = this.createCommand(deviceId, dimFunction, dimLevel, isGroup ? Entity_Type.Group : Entity_Type.Module);
     return this.sendCommand(command, sendLocal);
   }
 
+  /**
+   * Change color temperature of a light
+   * @param deviceId The id of the device tou want tot dim
+   * @param colorTempFunction The function you want to use to change the color temperature of the device
+   * @param colorTemperature The new color temperature. Value from 0 to 600
+   * @param isGroup A boolean which indicates whether the device is a group of other devices or not
+   * @param sendLocal A boolean which indicates whether you want to send the command through KAKU cloud or local using UDP
+   */
   public changeColorTemperature(
     deviceId: number, colorTempFunction: number, colorTemperature: number, isGroup: boolean, sendLocal: boolean,
   ) {
@@ -389,12 +397,12 @@ export default class Hub {
       throw new Error(`Color temperature ${colorTemperature} is negative or greater than 600`);
     }
 
-    const command = this.createCommand(deviceId, colorTempFunction, colorTemperature, isGroup ? 'module' : 'group');
+    const command = this.createCommand(deviceId, colorTempFunction, colorTemperature, isGroup ? Entity_Type.Group : Entity_Type.Module);
     return this.sendCommand(command, sendLocal);
   }
 
   public async runScene(entityId: number): Promise<void> {
-    const command = this.createCommand(entityId, 0, 1, 'scene');
+    const command = this.createCommand(entityId, 0, 1, Entity_Type.Scene);
     return this.sendCommand(command, true);
   }
 
@@ -593,6 +601,14 @@ export default class Hub {
     return dateString + ' ' + timeString;
   }
 
+  /**
+   * Get raw energy data recorded by the ICS-2000 using the P1-port
+   * @param startDate The start of the period you want the data from
+   * @param endDate The end of the period you want the data from
+   * @param precision The precision of the data. Some values are 15minutes, day, week, month
+   * @param differential
+   * @param interpolate
+   */
   public async getP1Data(
     startDate: Date,
     endDate: Date,

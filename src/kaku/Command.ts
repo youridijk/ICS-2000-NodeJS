@@ -3,7 +3,7 @@ import Cryptographer from './Cryptographer';
 import dgram from 'dgram';
 import {URLSearchParams} from 'url';
 import axios from 'axios';
-import EntityType from './model/EntityType';
+import EntityType from './model/Entity_Type';
 
 /**
  * This class represents a command sent to the ICS-2000
