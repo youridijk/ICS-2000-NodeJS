@@ -1,6 +1,6 @@
 import Hub from '../Hub';
 import DeviceData from '../model/DeviceData';
-import EntityType from '../model/Entity_Type';
+import {EntityType} from '../model/EntityType';
 
 /**
  * This class represents a device you can turn on or off

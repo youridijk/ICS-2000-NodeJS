@@ -3,7 +3,7 @@ import Cryptographer from './Cryptographer';
 import dgram from 'dgram';
 import {URLSearchParams} from 'url';
 import axios from 'axios';
-import EntityType from './model/Entity_Type';
+import {EntityType} from './model/EntityType';
 
 /**
  * This class represents a command sent to the ICS-2000
@@ -77,7 +77,6 @@ export default class Command {
   public sendTo(host: string, port: number, sendTimeout = 10_000) {
     return new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
-        console.log('timeout');
         reject('Message timed out');
       }, sendTimeout);
 
