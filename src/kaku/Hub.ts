@@ -447,7 +447,7 @@ export default class Hub {
 
     const dateDifference = currentDate.getTime() - updateDate.getTime();
 
-    if (dateDifference >= 2000) {
+    if (dateDifference >= 2000 || this.deviceStatuses.size === 0) {
       this.updating = true;
       await this.getAllDeviceStatuses();
       this.updating = false;
