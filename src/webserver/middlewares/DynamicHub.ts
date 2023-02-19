@@ -11,8 +11,15 @@ export default function (req: Request, res: Response, next: NextFunction) {
   }
 
   req.hub = new Hub(email!.toString(), password!.toString());
-  req.hub['hubMac'] = hubMac?.toString();
-  req.hub['aesKey'] = aesKey?.toString();
+
+  if (hubMac) {
+    req.hub.setHubMac(hubMac.toString());
+  }
+
+  if (aesKey) {
+    req.hub.setAesKey(aesKey.toString());
+  }
+
   req.sendCommandsLocal = false;
   next();
 }

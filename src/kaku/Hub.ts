@@ -3,16 +3,19 @@ import Cryptographer from './Cryptographer';
 import * as dgram from 'dgram';
 import Command from './Command';
 import * as fs from 'fs';
-import Device from './devices/Device';
-import DimDevice from './devices/DimDevice';
+import DimDevice from './entities/DimDevice';
 import DeviceData from './model/DeviceData';
 import axios from 'axios';
 import SmartMeterDataCurrent from './model/SmartMeterDataCurrent';
-import ColorTemperatureDevice from './devices/ColorTemperatureDevice';
+import ColorTemperatureDevice from './entities/ColorTemperatureDevice';
 import DeviceConfig from './model/DeviceConfig';
 import deviceConfigs from './DeviceConfigs';
-import SwitchDevice from './devices/SwitchDevice';
+import SwitchDevice from './entities/SwitchDevice';
 import SmartMeterData, {Precision} from './model/SmartMeterData';
+import {EntityType, Entity_Type} from './model/EntityType';
+import Scene from './entities/Scene';
+import Device from './entities/Device';
+import Entity from './entities/Entity';
 
 // Set base url for all axios requests
 axios.defaults.baseURL = 'https://trustsmartcloud2.com/ics2000_api';
@@ -33,7 +36,7 @@ export default class Hub {
    * Creates a Hub for easy communication with the ics-2000
    * @param email Your e-mail of your KAKU account
    * @param password Your password of your KAKU account
-   * @param deviceBlacklist A list of entityID's you don't want to appear in HomeKit
+   * @param entityBlacklist A list of entityID's you don't want to appear in HomeKit
    * @param localBackupAddress Optionally, you can pass the ip address of your ics-2000
    * in case it can't be automatically found in the network
    * @param deviceConfigsOverrides An object used to pass custom device configs.
@@ -42,7 +45,7 @@ export default class Hub {
   constructor(
     private readonly email: string,
     private readonly password: string,
-    private readonly deviceBlacklist: number[] = [],
+    private readonly entityBlacklist: number[] = [],
     private readonly localBackupAddress?: string,
     deviceConfigsOverrides: Record<number, DeviceConfig> = {},
   ) {
@@ -151,31 +154,25 @@ export default class Hub {
       'entity_id': idsString,
     });
 
-
     const response = await axios.post('/entity.php', params.toString());
-
-    // const devicesJSON = responseJson.filter(device => {
-    //   const deviceId = Number(device['id']);
-    //   const data = device['data'];
     const statusList: object[] = response.data;
 
     if (statusList.length === 0) {
-      throw new Error(`Unknown error while fetching device statuses, json: ${statusList}`);
+      throw new Error(`Unknown error while fetching device statuses, response json: ${statusList}`);
     }
 
-    // return statusList.map(device => {
-    //   if (decryptData) {
-    //     const decryptedData = Cryptographer.decryptBase64(device['data'], this.aesKey!);
-    //     device['data'] = JSON.parse(decryptedData);
-    //   }
-    //
-    //   if (decryptStatus && device['status'] != null) {
-    //     const decryptedStatus = Cryptographer.decryptBase64(device['status'], this.aesKey!);
-    //     device['status'] = JSON.parse(decryptedStatus);
-    //   }
-    // });
-
     return statusList.map(d => this.formatDeviceData(d, decryptData, decryptStatus));
+  }
+
+  public async getScenes(entitiesData?: object[]): Promise<Scene[]> {
+    // Status of scene is not imported so not decrypting it
+    if (!entitiesData) {
+      entitiesData = await this.getRawDevicesData(true, false);
+    }
+
+    const scenes = entitiesData!.filter(entity => 'scene' in entity['data'] && !this.entityBlacklist.includes(entity['id']));
+
+    return scenes.map(s => new Scene(this, s as DeviceData, 'scene'));
   }
 
 
@@ -183,18 +180,20 @@ export default class Hub {
    * Pulls the list of devices connected to your ics-2000 from the serer
    * Stores the list of devices in this class and returns it
    */
-  public async pullDevices() {
+  public async getDevices(entitiesData?: object[]) {
     // Status will later be decrypted, because fewer data needs to be decrypted
-    const devicesData: object[] = await this.getRawDevicesData(true, false);
+    if (!entitiesData) {
+      entitiesData = await this.getRawDevicesData(true, false);
+    }
 
     const hubCopy = Object.assign({}, this);
     hubCopy.devices = [];
 
-    const devices = devicesData.filter(device => {
+    const devices = entitiesData!.filter(device => {
       const deviceId = Number(device['id']);
       const data = device['data'];
 
-      if (this.deviceBlacklist.includes(deviceId)) {
+      if (this.entityBlacklist.includes(deviceId)) {
         return false;
       }
 
@@ -248,9 +247,19 @@ export default class Hub {
   }
 
   /**
+   * Get a list of all devices and scenes
+   */
+  public async getDevicesAndScenes(): Promise<Entity[]> {
+    const entitiesData = await this.getRawDevicesData(true, false);
+    const scenes = await this.getScenes(entitiesData);
+    const devices = await this.getDevices(entitiesData);
+    return [...scenes, ...devices];
+  }
+
+  /**
    * Search in you local network for the ics-2000. The ics-2000 listens to a broadcast message, so that's the way we find it out
    * @param searchTimeout The amount of milliseconds you want to wait for an answer on the sent message, before the promise is rejected
-   * @param message
+   * @param message The message sent to the ics-2000 to discover it in HEX string format. Defaults to self discovered message
    */
   public async discoverHubLocal(searchTimeout = 10_000, message?: string) {
     return new Promise<{ address: string; isBackupAddress: boolean }>((resolve, reject) => {
@@ -288,18 +297,23 @@ export default class Hub {
    * @param deviceId The id of the device you want to run a function on
    * @param deviceFunction The function you want to run on the device
    * @param value The value for the function
-   * @param isGroup A boolean which indicates whether the device is a group of other devices or not
+   * @param entityType The entityType used for the command
    */
-  public createCommand(deviceId: number, deviceFunction: number, value: number, isGroup: boolean): Command {
+  public createCommand(deviceId: number, deviceFunction: number, value: number, entityType: EntityType): Command {
     let deviceFunctions: number[] = [];
 
-    if (isGroup) {
+    if (entityType === 'group') {
       deviceFunctions = this.deviceStatuses.get(deviceId)!;
     }
 
-    return new Command(this.hubMac!, deviceId, deviceFunction, value, this.aesKey!, isGroup, deviceFunctions);
+    return new Command(this.hubMac!, deviceId, deviceFunction, value, this.aesKey!, entityType, deviceFunctions);
   }
 
+  /**
+   * Sends a command to the ICS-2000 directly or through the cloud
+   * @param command The command you want to send
+   * @param sendLocal Whether you want to send the command directly or through the cloud
+   */
   public async sendCommand(command: Command, sendLocal: boolean): Promise<void> {
     if (sendLocal) {
       return this.sendCommandToHub(command, 2012);
@@ -308,6 +322,11 @@ export default class Hub {
     }
   }
 
+  /**
+   * Send a command to the ICS-2000 through the cloud
+   * @param command The command you want to send
+   * @param port The port you want to send the command to. Default for ICS-2000 is 2012
+   */
   public async sendCommandToHub(command: Command, port: number): Promise<void> {
     if (!this.localAddress) {
       throw new Error('Local address is undefined');
@@ -320,12 +339,16 @@ export default class Hub {
     return command.sendTo(this.localAddress!, port);
   }
 
+  /**
+   * Send a command to the ICS-2000 through the cloud
+   * @param command The command you want to send
+   */
   public async sendCommandToCloud(command: Command): Promise<void> {
     return command.sendToCloud(this.email, this.password);
   }
 
   public changeStatus(deviceId: number, deviceFunction: number, value: number, isGroup: boolean, sendLocal: boolean) {
-    const command = this.createCommand(deviceId, deviceFunction, value, isGroup);
+    const command = this.createCommand(deviceId, deviceFunction, value, isGroup ? Entity_Type.Group : Entity_Type.Module);
     return this.sendCommand(command, sendLocal);
   }
 
@@ -338,7 +361,7 @@ export default class Hub {
    * @param sendLocal A boolean which indicates whether you want to send the command through KAKU cloud or local using UDP
    */
   public turnDeviceOnOff(deviceId: number, on: boolean, onFunction: number, isGroup: boolean, sendLocal: boolean) {
-    const command = this.createCommand(deviceId, onFunction, on ? 1 : 0, isGroup);
+    const command = this.createCommand(deviceId, onFunction, on ? 1 : 0, isGroup ? Entity_Type.Group : Entity_Type.Module);
     return this.sendCommand(command, sendLocal);
   }
 
@@ -355,10 +378,18 @@ export default class Hub {
       throw new Error(`Dim level ${dimLevel} is negative or greater than 255`);
     }
 
-    const command = this.createCommand(deviceId, dimFunction, dimLevel, isGroup);
+    const command = this.createCommand(deviceId, dimFunction, dimLevel, isGroup ? Entity_Type.Group : Entity_Type.Module);
     return this.sendCommand(command, sendLocal);
   }
 
+  /**
+   * Change color temperature of a light
+   * @param deviceId The id of the device tou want tot dim
+   * @param colorTempFunction The function you want to use to change the color temperature of the device
+   * @param colorTemperature The new color temperature. Value from 0 to 600
+   * @param isGroup A boolean which indicates whether the device is a group of other devices or not
+   * @param sendLocal A boolean which indicates whether you want to send the command through KAKU cloud or local using UDP
+   */
   public changeColorTemperature(
     deviceId: number, colorTempFunction: number, colorTemperature: number, isGroup: boolean, sendLocal: boolean,
   ) {
@@ -366,8 +397,13 @@ export default class Hub {
       throw new Error(`Color temperature ${colorTemperature} is negative or greater than 600`);
     }
 
-    const command = this.createCommand(deviceId, colorTempFunction, colorTemperature, isGroup);
+    const command = this.createCommand(deviceId, colorTempFunction, colorTemperature, isGroup ? Entity_Type.Group : Entity_Type.Module);
     return this.sendCommand(command, sendLocal);
+  }
+
+  public async runScene(entityId: number): Promise<void> {
+    const command = this.createCommand(entityId, 0, 1, Entity_Type.Scene);
+    return this.sendCommand(command, true);
   }
 
   public async getAllDeviceStatuses() {
@@ -411,7 +447,7 @@ export default class Hub {
 
     const dateDifference = currentDate.getTime() - updateDate.getTime();
 
-    if (dateDifference >= 2000) {
+    if (dateDifference >= 2000 || this.deviceStatuses.size === 0) {
       this.updating = true;
       await this.getAllDeviceStatuses();
       this.updating = false;
@@ -504,7 +540,7 @@ export default class Hub {
     if (!this.aesKey || !this.hubMac) {
       // console.log('MAC or AES key is null, so logging in!');
       await this.login();
-      await this.pullDevices();
+      await this.getDevices();
     }
 
     const devices = await this.getRawDeviceStatuses(decryptData, decryptStatus);
@@ -565,6 +601,14 @@ export default class Hub {
     return dateString + ' ' + timeString;
   }
 
+  /**
+   * Get raw energy data recorded by the ICS-2000 using the P1-port
+   * @param startDate The start of the period you want the data from
+   * @param endDate The end of the period you want the data from
+   * @param precision The precision of the data. Some values are 15minutes, day, week, month
+   * @param differential
+   * @param interpolate
+   */
   public async getP1Data(
     startDate: Date,
     endDate: Date,
@@ -665,6 +709,24 @@ export default class Hub {
 
   public getHubMac() {
     return this.hubMac;
+  }
+
+  /**
+   * Set the AES-key used for encryption and descryption
+   * @param aesKey The AES-key used to encrypt and decrypt data send and received. Will be fetched when running login(),
+   * but if you don't need MAC-address and provide AES-key, login isn't necessary
+   */
+  public setAesKey(aesKey: string) {
+    this.aesKey = aesKey;
+  }
+
+  /**
+   * Set hub mac address
+   * @param hubMac The MAC-Address of your ICS-2000. Will be fetched when running login(),
+   * but if you don't need AES-key and provide MAC-address, login isn't necessary
+   */
+  public setHubMac(hubMac: string) {
+    this.hubMac = hubMac;
   }
 }
 

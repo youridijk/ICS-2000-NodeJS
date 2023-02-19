@@ -64,7 +64,7 @@ export default class RESTServer {
       await this.hub.discoverHubLocal();
     }
     // console.log('Discovered hub');
-    await this.hub.pullDevices();
+    await this.hub.getDevices();
     // console.log('Pulled devices');
     await this.hub.getAllDeviceStatuses();
     // console.log('Got all statuses');
