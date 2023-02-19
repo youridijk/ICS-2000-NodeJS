@@ -41,7 +41,7 @@ export default class SwitchDevice extends Device {
    * @param sendLocal Boolean which indicates whether you want to send the command local using UDP directly to ICS-2000
    * or through the KAKU cloud. Defaults to true.
    */
-  public turOff(sendLocal = true): Promise<void> {
+  public turnOff(sendLocal = true): Promise<void> {
     return this.getHub().turnDeviceOnOff(this.entityId, false, this.deviceConfig.onOffFunction!, this.isGroup, sendLocal);
   }
 
