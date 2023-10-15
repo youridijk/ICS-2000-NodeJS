@@ -15,6 +15,7 @@ import GETSmartMeterDataByDay from './routes/smartmeter/GETSmartMeterDataByDay';
 import GETSmartMeterDataByDayPastMonth from './routes/smartmeter/GETSmartMeterDataByDayPastMonth';
 import GETSmartMeterDataByDayPastWeek from './routes/smartmeter/GETSmartMeterDataByDayPastWeek';
 import Login from './routes/Login';
+import PUTDimLevel from './routes/control/PUTDimLevel';
 
 export default class RESTServer {
   protected readonly app: Express = express();
@@ -45,11 +46,11 @@ export default class RESTServer {
     this.router.get('/smartmeter/day/month', GETSmartMeterDataByDayPastMonth);
 
     this.router.get('/devices', GETDevices);
-    this.router.get('/devices/:entityId', CheckNumber, CheckGetDevice, GETDevice);
+    this.router.get('/devices/:entityId', [CheckNumber, CheckGetDevice], GETDevice);
     this.router.get('/devices/:entityId/status', [CheckNumber, CheckGetDevice], GETDeviceStatus);
-    this.router.put('/devices/:entityId/status', CheckNumber, CheckGetDevice, PUTDeviceStatus);
-    this.router.put(['/devices/:entityId/status/on', '/devices/:entityId/status/off'], CheckNumber, CheckGetDevice, PUTOnOff);
-    this.router.put('/devices/:entityId/status/:dimLevel', CheckNumber, CheckGetDevice);
+    this.router.put('/devices/:entityId/status', [CheckNumber, CheckGetDevice], PUTDeviceStatus);
+    this.router.put(['/devices/:entityId/status/on', '/devices/:entityId/status/off'], [CheckNumber, CheckGetDevice], PUTOnOff);
+    this.router.put('/devices/:entityId/status/dimLevel/:dimLevel', [CheckNumber, CheckGetDevice], PUTDimLevel);
     this.app.use(this.router);
   }
 

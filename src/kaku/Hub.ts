@@ -158,6 +158,7 @@ export default class Hub {
     const statusList: object[] = response.data;
 
     if (statusList.length === 0) {
+      console.log(params);
       throw new Error(`Unknown error while fetching device statuses, response json: ${statusList}`);
     }
 
@@ -328,7 +329,7 @@ export default class Hub {
    * @param port The port you want to send the command to. Default for ICS-2000 is 2012
    */
   public async sendCommandToHub(command: Command, port: number): Promise<void> {
-    if (!this.localAddress) {
+    if (this.localAddress == null) {
       throw new Error('Local address is undefined');
     }
 
@@ -351,6 +352,11 @@ export default class Hub {
     const command = this.createCommand(deviceId, deviceFunction, value, isGroup ? Entity_Type.Group : Entity_Type.Module);
     return this.sendCommand(command, sendLocal);
   }
+
+
+  // public async changeStatusArray(deviceId: number, statusArray: number[], isGroup: boolean, sendLocal: boolean) {
+  //   const currentStatus = await
+  // }
 
   /**
    * Creates a command to turn a device on or off and sends it to the ics-2000 ip address stored in this class

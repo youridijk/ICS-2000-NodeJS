@@ -23,6 +23,6 @@ export default async (req: Request, res: Response) => {
   } catch (e) {
     res
       .status(500)
-      .send({error: `Error turning device on or off: ${e}`});
+      .send({error: `Error turning changing dim level: ${e}`});
   }
 };

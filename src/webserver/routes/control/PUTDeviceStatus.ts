@@ -12,7 +12,7 @@ export default async (req: Request, res: Response) => {
   if (!Number.isInteger(deviceFunction) || !Number.isInteger(value)) {
     return res
       .status(400)
-      .send({error: 'deviceFunction and value needs to be an integer'});
+      .send({error: 'deviceFunction and value need to be an integer'});
   }
 
   try {

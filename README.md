@@ -15,10 +15,11 @@ const hub = new Hub('your KAKU account e-mail', 'your password');
 // Required for almost everything
 await hub.login();
 
-await hub.getAllDeviceStatuses();
-
 // Get all devices stored on your account and find the local IP-address of your ICS-2000 
-await hub.discoverDevices();
+await hub.getDevices();
+
+// Get the status of each device
+await hub.getAllDeviceStatuses();
 
 // Turn device on with entity id 12345
 await hub.turnDeviceOnOff(12345, true, 1, false, true);

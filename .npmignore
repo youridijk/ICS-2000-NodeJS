@@ -138,7 +138,7 @@ homebridge-config.json
 .idea
 device-config.json
 docs/
-*.md
 *.chls
 test-date/
 src/test.js
+Dockerfile
