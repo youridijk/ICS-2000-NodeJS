@@ -79,17 +79,25 @@ npm run build
 To start the server, run the following:
 
 ```shell
-npm run start:server -- 'e-mail' 'password'
+npm run start:server -- -e 'e-mail' -p 'password'
 ```
 
 Optionally, provide a port (default port is 8080):
 
 ```shell
-npm run start:server -- 'e-mail' 'password' '8888'
+npm run start:server -- -e 'e-mail' -p 'password' --port '8888'
 ```
 
 Note that the server only supports controlling devices connected to the account you provided the credentials for when
 you started the server.
+
+For more documentation about routes, see [Routes.md](./docs/Routes.md)
+
+### Single user mode VS multi user mode
+It is possible to start the server in two modes:
+- Single user mode: This mode is used if you entered your credentials when you started the server. In this mode, you can only control the devices connected to your account.
+- Multi-user mode:  This mode is used if you don't enter your credentials when you start the server. In this mode, you need to provide an email and password in the headers of each request you make to the REST server. This way, you can use multiple accounts with the REST-server. 
+
 
 ### Docker
 A Docker-image is provided to run the REST server in a Docker container.
@@ -108,3 +116,4 @@ Note: Backup IP is required because the hub can't be found from the Docker conta
 ```shell
 docker run -p 8080:8080 -e EMAIL='your@email.com' -e PASSWORD='password' -e BACKUPIP='192.168.1.12' --name ics-2000 ics-2000 
 ```
+

@@ -1,7 +1,7 @@
 import {Request, Response} from 'express';
 
 export default async function (req: Request, res: Response) {
-  const endDateString = String(req.body.endDate ?? '');
+  const endDateString = String(req.query.endDate ?? '');
 
   if (endDateString === '') {
     return res
