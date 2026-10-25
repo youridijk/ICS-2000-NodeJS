@@ -3,8 +3,8 @@ import {Request, Response} from 'express';
 export default async (req: Request, res: Response) => {
   const {device} = req;
 
-  const deviceFunction = Number(req.body.deviceFunction);
-  const value = Number(req.body.value);
+  const deviceFunction = Number(req.body?.deviceFunction);
+  const value = Number(req.body?.value);
 
   const {local} = req.query;
   const sendLocal = local == null ? req.sendCommandsLocal : local === '1' || local === 'true';

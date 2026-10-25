@@ -22,9 +22,7 @@ export default async function (req: Request, res: Response) {
   console.log(startDate);
   console.log(endDate, endDateString);
 
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  if (startDate == 'Invalid Date' || endDate == 'Invalid Date' ) {
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
     return res
       .status(400)
       .send({error: 'startDate or endDate is an invalid date'});

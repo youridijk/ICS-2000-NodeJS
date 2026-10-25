@@ -60,20 +60,24 @@ export default class RESTServer {
     }
 
     await this.hub.login();
-    // console.log('Logged in');
+
     if (this.sendCommandsLocal) {
       await this.hub.discoverHubLocal();
     }
-    // console.log('Discovered hub');
+
     await this.hub.getDevices();
-    // console.log('Pulled devices');
     await this.hub.getAllDeviceStatuses();
-    // console.log('Got all statuses');
   }
 
   public listen(port: number, hostname = '0.0.0.0'): Promise<void> {
-    return new Promise<void>((resolve) => {
-      this.app.listen(port, hostname, resolve);
+    return new Promise<void>((resolve, reject) => {
+      this.app.listen(port, hostname, (error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
     });
   }
 }
