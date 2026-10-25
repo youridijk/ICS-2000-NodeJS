@@ -4,10 +4,10 @@
 
 A list of devices, rooms, groups (multiple devices grouped to one device), scenes, rules, etc., is stored on the cloud
 of KAKU, along with the current status of all devices. To fetch this list, you need the MAC-address of your ICS-2000 (
-see [Hub](Hub.md)). The list is being fetched as followed:
+see [Hub](Hub.md)), and the `home_id` returned by login. The list is being fetched as followed:
 
 ```http request
-POST /gateway.php?action=sync&email=your_kaku_login_email&password_hash=your_kaku_password_plain_text&mac=your-ICS-2000-MAC-address&home_id=
+POST /gateway.php?action=sync&email=your_kaku_login_email&password_hash=your_kaku_password_plain_text&mac=your-ICS-2000-MAC-address&home_id=your_home_id
 ```
 
 The parameters in the url are as followed (you don't need to do anything with this):
@@ -18,11 +18,11 @@ The parameters in the url are as followed (you don't need to do anything with th
     "email": "your_kaku_login_email",
     "password_hash": "your_kaku_password_plain_text",
     "mac": "your-ICS-2000-MAC-address",
-    "home_id": ""
+    "home_id": "your_home_id"
 }
 ```
 
-Fill in your e-mail, password and ICS-2000 MAC in the url above, and you get the list returned. A device in the list
+Fill in your e-mail, password, ICS-2000 MAC and home ID in the url above, and you get the list returned. A device in the list
 looks as followed:
 
 ```json 
@@ -142,7 +142,7 @@ the KAKU app. This status is automatically updated if you change the status usin
 ICS-2000 or through a physical remote. The statuses are being fetched as followed:
 
 ```http request
-POST /entity.php?action=get-multiple&email=your_kaku_login_email&password_hash=your_kaku_password_plain_text&mac=your-ICS-2000-MAC-address&home_id=&entity_id=array_of_entity_ids
+POST /entity.php?action=get-multiple&email=your_kaku_login_email&password_hash=your_kaku_password_plain_text&mac=your-ICS-2000-MAC-address&home_id=your_home_id&entity_id=array_of_entity_ids
 ```
 
 The parameters in the url are as followed (you don't need to do anything with this):
@@ -153,7 +153,7 @@ The parameters in the url are as followed (you don't need to do anything with th
     "email": "your_kaku_login_email",
     "password_hash": "your_kaku_password_plain_text",
     "mac": "your-ICS-2000-MAC-address",
-    "home_id": "",
+    "home_id": "your_home_id",
     "entity_id": ["array_of_entity_ids"]
 }
 ```
@@ -164,7 +164,7 @@ For example: `"[1244,1244576,23324]"`
 
 In the url it will look like this: `/entity.php?entity_id=[1244,1244576,23324]`
 
-Fill in your e-mail, password, ICS-2000 MAC and the list of entity IDs in the url above, and you get the list returned.
+Fill in your e-mail, password, ICS-2000 MAC, home ID and the list of entity IDs in the url above, and you get the list returned.
 A device in the list looks as followed:
 
 ```json 
@@ -173,7 +173,7 @@ A device in the list looks as followed:
     "data_version": 578,
     "data": "Encrypted Base64 string holding the device data",
     "status_version": 18343,
-    "status": "Encrypted Base64 string holding the device status",
+    "status": "Encrypted Base64 string holding the device status"
 }
 ```
 
@@ -232,7 +232,7 @@ account, but most of the JSON will be the same
           "smd_version": 0
         }
       }
-    },
+    }
 ```
 
 Again, the cloud returns a lot of data and the only data needed to get the status is the `functions` attribute inside

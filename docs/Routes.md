@@ -2,13 +2,17 @@
 
 
 ## GET /login
-Get information about login
+Get the AES key, MAC address and home ID returned by account login.
+In multi-user mode, send `email` and `password` headers. You can reuse the returned
+`aesKey`, `hubMac` and `homeId` as headers on subsequent requests alongside your credentials.
+If any of these three values is missing on `/login`, the server logs in again to fetch them.
 
 ### Example
 ```json
 {
   "aesKey":"aaaaaaaaaa",
-  "hubMac":"0012AB11AB13"
+  "hubMac":"0012AB11AB13",
+  "homeId":"12345"
 }
 ```
 

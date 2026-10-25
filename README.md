@@ -11,7 +11,7 @@ This library supports communication locally (talking direct to the ICS-2000) and
 ```ts
 const hub = new Hub('your KAKU account e-mail', 'your password');
 
-// Login to get AES key anc MAC-address of your ICS-2000
+// Login to get the AES key, MAC address and home ID of your ICS-2000
 // Required for almost everything
 await hub.login();
 
@@ -58,6 +58,14 @@ await device.dim(255, false)
 
 // Change color temperature to half of maximal level using the servers of Trust
 await device.changeColorTemperature(300, false);
+```
+
+To reuse account details without calling `login()`, set all three values before fetching devices or statuses:
+
+```ts
+hub.setAesKey('your AES key');
+hub.setHubMac('your ICS-2000 MAC address');
+hub.setHomeId('your home ID');
 ```
 
 ## Locally VS cloud
@@ -116,4 +124,3 @@ Note: Backup IP is required because the hub can't be found from the Docker conta
 ```shell
 docker run -p 8080:8080 -e EMAIL='your@email.com' -e PASSWORD='password' -e BACKUPIP='192.168.1.12' --name ics-2000 ics-2000 
 ```
-

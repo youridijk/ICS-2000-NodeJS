@@ -2,7 +2,10 @@ import {NextFunction, Request, Response} from 'express';
 import Hub from '../../kaku/Hub';
 
 export default function (req: Request, res: Response, next: NextFunction) {
-  const {email, password, aesKey, hubMac} = req.headers;
+  const {email, password} = req.headers;
+  const aesKey = req.get('aesKey');
+  const hubMac = req.get('hubMac');
+  const homeId = req.get('homeId');
 
   if (!email || !password) {
     return res
@@ -18,6 +21,10 @@ export default function (req: Request, res: Response, next: NextFunction) {
 
   if (aesKey) {
     req.hub.setAesKey(aesKey.toString());
+  }
+
+  if (homeId) {
+    req.hub.setHomeId(homeId);
   }
 
   req.sendCommandsLocal = false;

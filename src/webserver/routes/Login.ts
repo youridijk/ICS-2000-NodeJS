@@ -5,8 +5,9 @@ export default async function (req: Request, res: Response) {
 
   const aesKey = hub.getAESKey();
   const hubMac = hub.getHubMac();
+  const homeId = hub.getHomeId();
 
-  if (aesKey == null && hubMac == null) {
+  if (!aesKey || !hubMac || !homeId) {
     await hub.login();
   }
 
@@ -15,5 +16,6 @@ export default async function (req: Request, res: Response) {
     .send({
       aesKey: hub.getAESKey(),
       hubMac: hub.getHubMac(),
+      homeId: hub.getHomeId(),
     });
 }

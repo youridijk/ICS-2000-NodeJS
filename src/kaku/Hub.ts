@@ -26,6 +26,7 @@ axios.defaults.baseURL = 'https://trustsmartcloud2.com/ics2000_api';
 export default class Hub {
   private aesKey?: string;
   private hubMac?: string;
+  private homeId?: string;
   public devices: Device[] = [];
   private localAddress?: string;
   public readonly deviceStatuses: Map<number, number[]> = new Map<number, number[]>();
@@ -58,7 +59,7 @@ export default class Hub {
   }
 
   /**
-   * Login on the KAKU server and fetch the AES key and ics-2000 mac address stored on you account
+   * Login on the KAKU server and fetch the AES key, ICS-2000 MAC address and home ID stored on your account
    */
   public async login() {
     const params = new URLSearchParams({
@@ -84,6 +85,7 @@ export default class Hub {
       const home = responseJson['homes'][0];
       this.aesKey = home['aes_key'];
       this.hubMac = home['mac'];
+      this.homeId = home['home_id'];
     } else {
       throw new Error(responseJson);
     }
@@ -116,8 +118,8 @@ export default class Hub {
    * @param decryptStatus A boolean which indicates whether you want to decrypt the status or not
    */
   public async getRawDevicesData(decryptData: boolean, decryptStatus: boolean) {
-    if (!this.aesKey || !this.hubMac) {
-      throw new Error('Hub mac address or aes key undefined');
+    if (!this.aesKey || !this.hubMac || !this.homeId) {
+      throw new Error('Hub mac address, aes key or home ID undefined; call login() or set all three values');
     }
 
     const params = new URLSearchParams({
@@ -125,13 +127,12 @@ export default class Hub {
       email: this.email,
       mac: this.hubMac!,
       password_hash: this.password,
-      home_id: '',
+      home_id: this.homeId!,
     });
 
     const response = await axios.post('/gateway.php', params.toString());
 
     const devicesData = await response.data;
-    // console.log(devicesData);
 
     if (decryptData || decryptStatus) {
       // Decrypt the data for every object in the data (scenes, rooms, groups and devices are all in this list)
@@ -142,23 +143,26 @@ export default class Hub {
   }
 
   public async getRawDeviceStatuses(decryptData: boolean, decryptStatus: boolean) {
+    if (!this.aesKey || !this.hubMac || !this.homeId) {
+      throw new Error('Hub mac address, aes key or home ID undefined; call login() or set all three values');
+    }
+
     const deviceIds: number[] = this.devices.map(device => Number(device.entityId));
     const idsString = `[${deviceIds}]`;
 
     const params = new URLSearchParams({
-      'action': 'get-multiple',
-      'email': this.email,
-      'mac': this.hubMac!,
-      'password_hash': this.password,
-      'home_id': '',
-      'entity_id': idsString,
+      action: 'get-multiple',
+      email: this.email,
+      mac: this.hubMac!,
+      password_hash: this.password,
+      home_id: this.homeId!,
+      entity_id: idsString,
     });
 
     const response = await axios.post('/entity.php', params.toString());
     const statusList: object[] = response.data;
 
     if (statusList.length === 0) {
-      console.log(params);
       throw new Error(`Unknown error while fetching device statuses, response json: ${statusList}`);
     }
 
@@ -198,7 +202,6 @@ export default class Hub {
         return false;
       }
 
-      // console.log( device['data']['module']['device']);
       device['isGroup'] = 'group' in data;
       // Check if entry is a device or a group
       if ('module' in data && 'info' in data['module']) {
@@ -416,9 +419,6 @@ export default class Hub {
     const statusList = await this.getRawDeviceStatuses(false, true);
 
     for (const device of statusList) {
-      // console.log(device)
-      // const status = Cryptographer.decryptBase64(device['status'], this.aesKey!);
-      // const jsonStatus = JSON.parse(status);
       const jsonStatus = device['status'];
 
       // Functions array is stored with different keys for groups and devices (modules)
@@ -475,17 +475,17 @@ export default class Hub {
    * index 0 is on/off status, index 4 is current dim level
    */
   public async getDeviceStatusFromServer(deviceId: number): Promise<number[]> {
-    if (!this.aesKey || !this.hubMac) {
-      throw new Error('Hub mac address or aes key undefined');
+    if (!this.aesKey || !this.hubMac || !this.homeId) {
+      throw new Error('Hub mac address, aes key or home ID undefined; call login() or set all three values');
     }
 
     const params = new URLSearchParams({
-      'action': 'get-multiple',
-      'email': this.email,
-      'mac': this.hubMac!,
-      'password_hash': this.password,
-      'home_id': '',
-      'entity_id': `[${deviceId}]`,
+      action: 'get-multiple',
+      email: this.email,
+      mac: this.hubMac!,
+      password_hash: this.password,
+      home_id: this.homeId!,
+      entity_id: `[${deviceId}]`,
     });
 
     const response = await axios.post('/entity.php', params.toString())
@@ -528,8 +528,7 @@ export default class Hub {
    * @param decryptStatus A boolean which indicates whether you want to decrypt the status or not
    */
   public async generateDevicesJSON(decryptData: boolean, decryptStatus: boolean) {
-    if (!this.aesKey || !this.hubMac) {
-      // console.log('MAC or AES key is null, so logging in!');
+    if (!this.aesKey || !this.hubMac || !this.homeId) {
       await this.login();
     }
 
@@ -543,8 +542,7 @@ export default class Hub {
    * @param decryptStatus A boolean which indicates whether you want to decrypt the status or not
    */
   public async generateDeviceStatusesJSON(decryptData: boolean, decryptStatus: boolean) {
-    if (!this.aesKey || !this.hubMac) {
-      // console.log('MAC or AES key is null, so logging in!');
+    if (!this.aesKey || !this.hubMac || !this.homeId) {
       await this.login();
       await this.getDevices();
     }
@@ -649,7 +647,6 @@ export default class Hub {
     const responseData = response.data;
 
     if (!Array.isArray(responseData)) {
-      console.log(responseData);
       if (responseData.error) {
         throw new Error(responseData.error);
       }
@@ -717,10 +714,14 @@ export default class Hub {
     return this.hubMac;
   }
 
+  public getHomeId() {
+    return this.homeId;
+  }
+
   /**
    * Set the AES-key used for encryption and descryption
-   * @param aesKey The AES-key used to encrypt and decrypt data send and received. Will be fetched when running login(),
-   * but if you don't need MAC-address and provide AES-key, login isn't necessary
+   * @param aesKey The AES-key used to encrypt and decrypt data sent and received. Fetched by login().
+   * To fetch devices and statuses without login(), also set the MAC address and home ID.
    */
   public setAesKey(aesKey: string) {
     this.aesKey = aesKey;
@@ -728,11 +729,19 @@ export default class Hub {
 
   /**
    * Set hub mac address
-   * @param hubMac The MAC-Address of your ICS-2000. Will be fetched when running login(),
-   * but if you don't need AES-key and provide MAC-address, login isn't necessary
+   * @param hubMac The MAC address of your ICS-2000. Fetched by login().
+   * To fetch devices and statuses without login(), also set the AES key and home ID.
    */
   public setHubMac(hubMac: string) {
     this.hubMac = hubMac;
+  }
+
+  /**
+   * Set the home ID returned by login(), alongside the AES key and MAC address.
+   * @param homeId The home ID used to fetch devices and statuses from the cloud
+   */
+  public setHomeId(homeId: string) {
+    this.homeId = homeId;
   }
 }
 
