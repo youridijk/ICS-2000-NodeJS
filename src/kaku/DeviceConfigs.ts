@@ -9,10 +9,11 @@ import DeviceConfig from './model/DeviceConfig';
 
 const deviceConfigs: Record<number, DeviceConfig> = {
   1: {
-    modelName: 'APC3-2300R KAKU 443MHz Smartplug',
+    modelName: 'KAKU 433MHz switch',
     onOffFunction: 0,
   },
-  2: { // DeviceType 2 uses 0 to 15 for dim values
+  2: {
+    // DeviceType 2 uses 0 to 15 for dim values
     modelName: 'KAKU dimmable',
     onOffFunction: 0,
     dimFunction: 1,
@@ -60,15 +61,15 @@ const deviceConfigs: Record<number, DeviceConfig> = {
   },
   13: {
     disabled: true,
-    modelName: 'Wall mounted remote control AYCT_202',
+    modelName: 'Chime',
   },
   14: {
     disabled: true,
-    modelName: 'Ambient light sensor',
+    modelName: 'Dusk sensor',
   },
   15: {
     disabled: true,
-    modelName: 'Dusk sensor',
+    modelName: 'AYCT-202 remote control',
   },
   16: {
     disabled: true,
@@ -140,27 +141,37 @@ const deviceConfigs: Record<number, DeviceConfig> = {
     disabled: true,
     modelName: 'Unkown Zigbee device',
   },
-  33: { // 0 for onOff not working, maybe this,
-    modelName: 'Zigbee (ledvance) smart plug',
+  33: {
+    modelName: 'Zigbee switch',
     onOffFunction: 3,
   },
-  34: { // not tested
-    modelName: 'Dimmable',
+  34: {
+    // not tested
+    modelName: 'Zigbee dimmer',
     onOffFunction: 3,
     dimFunction: 4,
+    maxBrightness: 254,
   },
   35: {
-    modelName: 'Zigbee RGB Light',
+    modelName: 'Zigbee RGB light',
+    onOffFunction: 3,
+    dimFunction: 4,
+    colorFunction: 5,
+    colorTemperatureFunction: 9,
+    maxBrightness: 254,
+    maxColorTemperature: 600,
   },
   36: {
-    modelName: 'Zigbee (ledvance) dimmable with color temperature',
+    modelName: 'Zigbee tunable white light',
     onOffFunction: 3,
     dimFunction: 4,
     colorTemperatureFunction: 9,
+    maxBrightness: 254,
+    maxColorTemperature: 600,
   },
   37: {
     disabled: true,
-    modelName: 'Zigbee multi purpose dimmer',
+    modelName: 'Zigbee multipurpose sensor',
   },
   38: {
     disabled: true,
@@ -171,12 +182,13 @@ const deviceConfigs: Record<number, DeviceConfig> = {
     modelName: 'Zigbee light link remote',
   },
   40: {
-    modelName: 'KAKU dimmable lightbulb',
+    modelName: 'Zigbee light',
     onOffFunction: 3,
     dimFunction: 4,
+    maxBrightness: 254,
   },
-  41: { //same as 33
-    modelName: 'Zigbee (ledvance) smart plug',
+  41: {
+    modelName: 'Zigbee socket',
     onOffFunction: 3,
   },
   42: {
@@ -188,31 +200,115 @@ const deviceConfigs: Record<number, DeviceConfig> = {
     modelName: 'KAKU wireless smoke detector ZSDR-850',
   },
   44: {
+    // Unverified legacy mapping; absent from APK 5.0.9.
     disabled: true,
     modelName: 'Carbon monoxide sensor',
   },
   45: {
+    // Unverified legacy mapping; absent from APK 5.0.9.
     disabled: true,
     modelName: 'Zigbee temperature and humidity sensor',
   },
   46: {
     disabled: true,
-    modelName: 'Zigbee light group',
+    modelName: 'Zigbee temperature and humidity sensor',
   },
   47: {
     disabled: true,
-    modelName: 'Zigbee fire angel sensor',
+    modelName: 'Zigbee carbon monoxide sensor',
   },
   48: {
-    modelName: 'KAKU group with dimmable lightbulb',
+    modelName: 'Zigbee light group',
     onOffFunction: 3,
     dimFunction: 4,
+    maxBrightness: 254,
   },
-  238: {disabled: true, modelName: 'P1 Module'},
-  240: {disabled: true, modelName: 'Alarm Module'},
-  241: {disabled: true, modelName: 'IPCam Module'},
-  242: {disabled: true, modelName: 'Geofencing Module'},
-  243: {disabled: true, modelName: 'System Module'},
+  49: {
+    disabled: true,
+    modelName: 'Zigbee FireAngel sensor',
+  },
+  50: {
+    disabled: true,
+    modelName: 'ACDB-8000A doorbell',
+  },
+  51: {
+    disabled: true,
+    modelName: 'Forest Shuttle actuator',
+  },
+  52: {
+    disabled: true,
+    modelName: 'Forest 5121 actuator',
+  },
+  53: {
+    modelName: 'Zigbee built-in switch',
+    onOffFunction: 3,
+  },
+  54: {
+    modelName: 'Zigbee built-in dimmer',
+    onOffFunction: 3,
+    dimFunction: 4,
+    maxBrightness: 254,
+  },
+  55: {
+    disabled: true,
+    modelName: 'AYCT-303 remote control',
+  },
+  56: {
+    disabled: true,
+    modelName: 'Actuator with slider',
+  },
+  57: {
+    modelName: 'Rotary dimmer with Matter',
+    onOffFunction: 0,
+    dimFunction: 1,
+    maxBrightness: 15,
+  },
+  58: {
+    disabled: true,
+    modelName: 'TSH actuator with Matter',
+  },
+  59: {
+    modelName: 'Zigbee socket dimmer',
+    onOffFunction: 3,
+    dimFunction: 4,
+    maxBrightness: 254,
+  },
+  65: {
+    disabled: true,
+    modelName: 'Motion Blinds lift',
+  },
+  66: {
+    disabled: true,
+    modelName: 'Motion Blinds tilt and lift',
+  },
+  67: {
+    disabled: true,
+    modelName: 'Motion Blinds tilt',
+  },
+  238: {
+    disabled: true,
+    modelName: 'P1 Module',
+  },
+  240: {
+    disabled: true,
+    modelName: 'Alarm Module',
+  },
+  241: {
+    disabled: true,
+    modelName: 'IPCam Module',
+  },
+  242: {
+    disabled: true,
+    modelName: 'Geofencing Module',
+  },
+  243: {
+    disabled: true,
+    modelName: 'System Module',
+  },
+  244: {
+    disabled: true,
+    modelName: 'Weather module',
+  },
 };
 
 export default deviceConfigs;

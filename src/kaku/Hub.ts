@@ -1,6 +1,7 @@
 import {URLSearchParams} from 'url';
 import Cryptographer from './Cryptographer';
 import * as dgram from 'dgram';
+import {randomBytes, randomInt} from 'crypto';
 import Command from './Command';
 import * as fs from 'fs';
 import DimDevice from './entities/DimDevice';
@@ -260,38 +261,61 @@ export default class Hub {
     return [...scenes, ...devices];
   }
 
+  private createDiscoveryMessage(): Buffer {
+    if (!this.hubMac || !this.aesKey) {
+      throw new Error('Local discovery requires the hub MAC and AES key. Call login() or setHubMac() and setAesKey() first.');
+    }
+
+    const mac = this.hubMac.replace(/[:-]/g, '');
+
+    const sid = randomBytes(4).readUInt32BE(0).toString(16);
+    const payload = Buffer.from(Cryptographer.encrypt(JSON.stringify({SID: sid}), this.aesKey), 'hex');
+    const header = Buffer.alloc(43);
+    header.writeUInt8(254, 0); // Broadcast frame
+    header.writeUInt8(3, 2); // ANNOUNCEMENT
+    Buffer.from(mac, 'hex').copy(header, 3);
+    header.writeUInt32LE(randomInt(1, 0x100000000), 9);
+    header.writeUInt16LE(payload.length, 41);
+    return Buffer.concat([header, payload]);
+  }
+
   /**
-   * Search in you local network for the ics-2000. The ics-2000 listens to a broadcast message, so that's the way we find it out
-   * @param searchTimeout The amount of milliseconds you want to wait for an answer on the sent message, before the promise is rejected
-   * @param message The message sent to the ics-2000 to discover it in HEX string format. Defaults to self discovered message
+   * Find the ICS-2000 IP address by broadcasting a dynamically generated announcement over UDP.
+   * Any response counts as success, including a rejection of the announcement.
+   * @param searchTimeout Milliseconds to wait before falling back to the backup IP address or rejecting
+   * @param message Optional custom discovery packet in HEX format, overriding the generated announcement
    */
   public async discoverHubLocal(searchTimeout = 10_000, message?: string) {
+    const messageBuffer = message == null ? this.createDiscoveryMessage() : Buffer.from(message, 'hex');
     return new Promise<{ address: string; isBackupAddress: boolean }>((resolve, reject) => {
-      const messageBuffer = Buffer.from(
-        message ?? '010003ffffffffffffca000000010400044795000401040004000400040000000000000000020000003000',
-        'hex',
-      );
       const client = dgram.createSocket('udp4');
 
       const timeout = setTimeout(() => {
         client.close();
         if (this.localBackupAddress) {
-          resolve({address: this.localBackupAddress!, isBackupAddress: true});
+          resolve({ address: this.localBackupAddress, isBackupAddress: true });
         } else {
-          reject('Searching hub timed out and no backup IP-address specified!');
+          reject(new Error('Searching hub timed out and no backup IP-address specified!'));
         }
       }, searchTimeout);
 
-      client.on('message', (msg, peer) => {
-        client.close();
+      client.on('error', (err) => {
         clearTimeout(timeout);
-        this.localAddress = peer.address;
-        resolve({address: peer.address, isBackupAddress: false});
+        client.close();
+        reject(err);
       });
 
-      client.bind(() => client.setBroadcast(true));
+      client.on('message', (msg, remoteInfo) => {
+        clearTimeout(timeout);
+        client.close();
+        this.localAddress = remoteInfo.address;
+        resolve({ address: remoteInfo.address, isBackupAddress: false });
+      });
 
-      client.send(messageBuffer, 2012, '255.255.255.255');
+      client.bind(() => {
+        client.setBroadcast(true);
+        client.send(messageBuffer, 2012, '255.255.255.255');
+      });
     });
   }
 

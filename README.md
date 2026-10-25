@@ -124,3 +124,8 @@ Note: Backup IP is required because the hub can't be found from the Docker conta
 ```shell
 docker run -p 8080:8080 -e EMAIL='your@email.com' -e PASSWORD='password' -e BACKUPIP='192.168.1.12' --name ics-2000 ics-2000 
 ```
+
+## Acknowledge
+[Stijn Jacobs](https://github.com/Stijn-Jacobs/ICS2000-Python) for the original research.
+
+[Mikedo](https://github.com/mideko/Homebridge-KAKU) for more research including RGB and sensors. 

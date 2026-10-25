@@ -4,6 +4,7 @@ export default interface DeviceConfig {
   readonly onOffFunction?: number;
   readonly dimFunction?: number;
   readonly colorTemperatureFunction?: number;
+  readonly colorFunction?: number; // Packed CIE xy coordinates
 
   readonly maxBrightness?: number;
   readonly maxColorTemperature?: number;
