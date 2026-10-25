@@ -185,54 +185,57 @@ account, but most of the JSON will be the same
 
 ```json 
 {
-    "id": 18769051,
-    "data_version": 578,
-    "data": {
-      "module": {
-        "id": 18769051,
-        "version": 576,
-        "name": "Lamp",
-        "device": 40,
-        "info": [
-          19,
-          134,
-          94,
-          192,
-          0,
-          1,
-          1,
-          0,
-          128,
-          0,
-          0,
-          0,
-          15,
-          8,
-          0,
-          0
-        ],
-        "group_capacity": 16,
-        "groups": [
-          134219042
-        ],
-        "endpoints": [
-          {
-            "device id": 256,
-            "profile id": 49246,
-            "endpoint": 1,
-            "function_mask": 2063
-          }
-        ],
-        "extended_module_info": ["integer array"],
-        "smd_info": {
-          "group": 0,
-          "group-type": 0,
-          "hidden": false,
-          "disabled": false,
-          "smd_version": 0
+  "id": 18769051,
+  "data_version": 578,
+  "data": {
+    "module": {
+      "id": 18769051,
+      "version": 576,
+      "name": "Lamp",
+      "device": 40,
+      "info": [
+        19,
+        134,
+        94,
+        192,
+        0,
+        1,
+        1,
+        0,
+        128,
+        0,
+        0,
+        0,
+        15,
+        8,
+        0,
+        0
+      ],
+      "group_capacity": 16,
+      "groups": [
+        134219042
+      ],
+      "endpoints": [
+        {
+          "device id": 256,
+          "profile id": 49246,
+          "endpoint": 1,
+          "function_mask": 2063
         }
+      ],
+      "extended_module_info": [
+        "integer array"
+      ],
+      "smd_info": {
+        "group": 0,
+        "group-type": 0,
+        "hidden": false,
+        "disabled": false,
+        "smd_version": 0
       }
     }
+  }
+}
 ```
 
 Again, the cloud returns a lot of data and the only data needed to get the status is the `functions` attribute inside
